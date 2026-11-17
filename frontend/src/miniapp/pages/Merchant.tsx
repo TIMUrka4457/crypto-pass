@@ -77,7 +77,7 @@ export default function Merchant() {
                 ))}
               </div>
             )}
-            <a href="/#api" className="block text-sm text-[#00E5FF]" data-testid="merchant-docs-link">Документация API →</a>
+            <a href="/business#api" className="block text-sm text-[#00E5FF]" data-testid="merchant-docs-link">Документация API →</a>
           </>
         )}
       </div>

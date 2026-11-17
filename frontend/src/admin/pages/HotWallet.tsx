@@ -1,10 +1,55 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Warning } from "@phosphor-icons/react";
-import { ASSET_LIST, ASSET_TITLE } from "@/lib/api";
+import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
+import { adminApi, errMsg, ASSET_LIST, ASSET_TITLE } from "@/lib/api";
 import { Status } from "@/miniapp/ui";
-import { H, Btn, Table, useLoad, dt, short } from "../kit";
+import { H, Btn, Table, useLoad, dt, short, inp, CommentAction } from "../kit";
 
-export default function HotWallet() {
+function Cold({ owner }: { owner: boolean }) {
+  const { data } = useLoad<any>("/settings");
+  const [c, setC] = useState<any>(null);
+  const [asset, setAsset] = useState("TON");
+  const [amount, setAmount] = useState("");
+  useEffect(() => { if (data) setC(data.cold); }, [data]);
+  if (!c) return null;
+  const save = () => adminApi.put("/cold", c).then(() => toast.success("Сохранено")).catch((e) => toast.error(errMsg(e)));
+  return (
+    <div className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-2" data-testid="cold-section">
+      <div className="space-y-3 border border-white/10 p-6 text-sm text-zinc-400">
+        <p className="font-display text-lg text-white">Холодные кошельки</p>
+        <p className="text-xs text-zinc-500">Переводы идут только на эти адреса. Менять их может только владелец.</p>
+        {[["ton", "TON (для TON и USDT TON)"], ["tron", "TRON (для USDT TRC20)"]].map(([k, l]) => (
+          <label key={k} className="block space-y-1">{l}
+            <input data-testid={`cold-${k}`} disabled={!owner} className={`${inp} h-10 w-full font-mono-num text-xs`} value={c[k]} onChange={(e) => setC({ ...c, [k]: e.target.value })} />
+          </label>
+        ))}
+        <div className="flex items-center justify-between">Автоперевод излишка
+          <Switch data-testid="cold-auto" disabled={!owner} checked={c.auto} onCheckedChange={(v) => setC({ ...c, auto: v })} />
+        </div>
+        {[["max_pct", "Переводить, если в горячем больше, %"], ["target_pct", "Оставлять в горячем, %"]].map(([k, l]) => (
+          <label key={k} className="flex items-center justify-between gap-3">{l}
+            <input data-testid={`cold-${k}`} disabled={!owner} className={`${inp} h-10 w-24`} value={c[k]} onChange={(e) => setC({ ...c, [k]: e.target.value })} />
+          </label>
+        ))}
+        {owner && <Btn testid="cold-save" tone="primary" onClick={save}>Сохранить</Btn>}
+      </div>
+      <div className="space-y-3 border border-white/10 p-6 text-sm text-zinc-400">
+        <p className="font-display text-lg text-white">Перевести в холодный</p>
+        <p className="text-xs text-zinc-500">Транзакция подписывается и отправляется автоматически. На TON-кошельке всегда остаётся 2 TON на газ.</p>
+        <div className="grid grid-cols-3 gap-2">
+          {ASSET_LIST.map((a) => <Btn key={a} testid={`cold-asset-${a}`} tone={a === asset ? "primary" : "ghost"} onClick={() => setAsset(a)}>{ASSET_TITLE[a]}</Btn>)}
+        </div>
+        <input data-testid="cold-amount" inputMode="decimal" className={`${inp} h-10 w-full`} placeholder="Сумма" value={amount} onChange={(e) => setAmount(e.target.value)} />
+        {owner ? <CommentAction label="Подписать и отправить" title={`Перевести ${amount || 0} ${ASSET_TITLE[asset]} в холодный кошелёк?`} tone="primary" testid="cold-send"
+          onSubmit={(comment) => adminApi.post("/cold/transfer", { asset, amount, comment }).then((r) => { setAmount(""); toast.success(`Отправлено, tx ${short(r.data.tx_hash, 6)}`); })} />
+          : <p className="text-xs">Доступно только владельцу.</p>}
+      </div>
+    </div>
+  );
+}
+
+export default function HotWallet({ me }: { me: any }) {
   const [n, setN] = useState(0);
   const { data: s } = useLoad<any>(`/hot-wallet${n ? "?refresh=true" : ""}`, [n]);
   return (
@@ -29,9 +74,10 @@ export default function HotWallet() {
               );
             })}
           </div>
-          <h2 className="mb-3 mt-10 font-display text-lg">Свипы и газ</h2>
+          <Cold owner={me?.role === "owner"} />
+          <h2 className="mb-3 mt-10 font-display text-lg">Свипы, газ и холодные переводы</h2>
           <Table testid="sweeps-table" cols={["Время", "Тип", "Актив", "Сумма (минимальные ед.)", "Хеш", "Статус"]}
-            rows={(s.sweeps || []).map((x: any) => [dt(x.created_at), x.kind === "gas" ? "газ" : "свип", x.asset, x.amount, short(x.tx_hash, 6), <Status s={x.status} />])} />
+            rows={(s.sweeps || []).map((x: any) => [dt(x.created_at), x.kind === "gas" ? "газ" : x.kind === "cold" ? "→ холодный" : "свип", x.asset, x.amount, short(x.tx_hash, 6), <Status s={x.status} />])} />
         </>
       )}
     </div>

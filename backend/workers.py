@@ -318,6 +318,62 @@ async def hot_wallet_snapshot() -> dict:
     return snap
 
 
+# ---------------- cold wallet ----------------
+COLD_RESERVE = {"TON": 2_000_000_000, "USDT_TON": 0, "USDT_TRC20": 0}
+
+
+async def cold_transfer(asset: str, amount: int, source: str = "manual") -> dict:
+    """Signs and broadcasts hot (index 0) -> configured cold address. Destination is never taken from the caller."""
+    from core import bad
+    s = await get_settings()
+    net = ASSETS[asset]["network"]
+    to = (s["cold"].get(net) or "").strip()
+    if not to or not chains.valid_address(net, to):
+        bad("Холодный адрес для этой сети не задан")
+    if amount <= 0:
+        bad("Некорректная сумма")
+    if net == "ton" and await _ton_hot_busy():
+        bad("Горячий TON-кошелёк сейчас отправляет другую транзакцию, повторите через минуту", 409)
+    hot = await signer_client.hot_address(net)
+    bal = await (chains.ton_balance(hot) if asset == "TON" else
+                 (chains.ton_jetton(hot)) if asset == "USDT_TON" else chains.tron_balances(hot))
+    onchain = bal if asset == "TON" else bal["balance"] if asset == "USDT_TON" else bal["usdt"]
+    if amount > onchain - COLD_RESERVE[asset]:
+        bad(f"Недостаточно на горячем кошельке (доступно {fmt(asset, max(0, onchain - COLD_RESERVE[asset]))})")
+    sid = new_id("cold_")
+    await db.sweeps.insert_one({"_id": sid, "address_id": None, "network": net, "asset": asset, "from_index": 0, "to": to,
+                                "amount": amount, "kind": "cold", "source": source, "status": "signing", "created_at": now()})
+    signed = await _sign_outbound(net, asset, 0, hot, to, amount)
+    await db.sweeps.update_one({"_id": sid}, {"$set": {"status": "broadcasting", "tx_hash": signed["tx_hash"], "signed_at": time.time()}})
+    try:
+        await _broadcast(net, signed["payload"])
+        await db.sweeps.update_one({"_id": sid}, {"$set": {"status": "sent"}})
+    except Exception as e:
+        await db.sweeps.update_one({"_id": sid}, {"$set": {"status": "unknown", "error": str(e)[:300]}})
+    return {"id": sid, "tx_hash": signed["tx_hash"], "to": to, "amount": fmt(asset, amount)}
+
+
+async def cold_auto():
+    """If the hot wallet holds more than max_pct of user funds, move the excess down to target_pct."""
+    s = await get_settings()
+    if not s["cold"]["auto"]:
+        return
+    snap = await hot_wallet_snapshot()
+    for asset, e in snap["assets"].items():
+        if e["balance"] is None or not e["share_pct"] or e["share_pct"] <= float(s["cold"]["max_pct"]):
+            continue
+        if not s["cold"].get(ASSETS[asset]["network"]):
+            continue
+        bal, li = units0(asset, e["balance"]), units0(asset, e["liabilities"])
+        excess = bal - int(Decimal(li) * Decimal(str(s["cold"]["target_pct"])) / 100)
+        try:
+            r = await cold_transfer(asset, excess, "auto")
+            notify_admins = __import__("admin_bot")._notify
+            await notify_admins(f"Автоперевод в холодный кошелёк: {r['amount']} {ASSETS[asset]['title']}\nTx: <code>{r['tx_hash']}</code>")
+        except Exception as ex:
+            log.info("cold auto %s skipped: %s", asset, ex)
+
+
 async def reconcile_job():
     r = await reconcile()
     await db.hot_wallet.update_one({"_id": "reconcile"}, {"$set": {**r, "at": now()}}, upsert=True)
@@ -329,7 +385,7 @@ async def reconcile_job():
 JOBS = [("scan_deposits", scan_deposits, 30), ("process_deposits", process_deposits, 10),
         ("send_withdrawals", send_withdrawals, 8), ("confirm_withdrawals", confirm_withdrawals, 15),
         ("sweeps", run_sweeps, 60), ("expire", expire_items, 30), ("webhooks", deliver_webhooks, 5),
-        ("hot_wallet", hot_wallet_snapshot, 300), ("reconcile", reconcile_job, 600)]
+        ("hot_wallet", hot_wallet_snapshot, 300), ("reconcile", reconcile_job, 600), ("cold_auto", cold_auto, 900)]
 
 
 async def _loop(name, fn, every, stop: asyncio.Event):

@@ -362,6 +362,7 @@ async def settings_get(a=Depends(perm("view"))):
 async def settings_put(body: dict, a=Depends(perm("settings"))):
     old = await get_settings()
     new = _merge(DEFAULT_SETTINGS, {k: v for k, v in body.items() if k in DEFAULT_SETTINGS})
+    new["cold"] = old["cold"]
     for asset, cfg in new["assets"].items():
         for f in ("withdraw_fee", "withdraw_min", "per_op_limit", "daily_limit", "auto_approve_limit", "sweep_threshold", "hot_alert", "deposit_fee"):
             units0(asset, cfg[f])
@@ -381,6 +382,46 @@ async def hot_wallet(a=Depends(perm("view")), refresh: bool = False):
     snap["at"] = snap["at"].isoformat() if isinstance(snap.get("at"), datetime) else snap.get("at")
     snap["sweeps"] = [ser(x) for x in await db.sweeps.find({}).sort("created_at", -1).limit(30).to_list(30)]
     return snap
+
+
+# ---------------- cold wallet (owner only) ----------------
+class ColdCfg(BaseModel):
+    ton: str = ""
+    tron: str = ""
+    auto: bool = False
+    max_pct: str = "15"
+    target_pct: str = "8"
+
+
+@router.put("/cold")
+async def cold_cfg(body: ColdCfg, a=Depends(perm("cold"))):
+    import chains
+    for net in ("ton", "tron"):
+        v = getattr(body, net).strip()
+        if v and not chains.valid_address(net, v):
+            bad(f"Некорректный адрес {net.upper()}")
+        if v and await db.deposit_addresses.find_one({"address": v}):
+            bad("Это адрес депозита внутри системы")
+    if not 0 < float(body.target_pct) < float(body.max_pct) <= 100:
+        bad("Нужно: 0 < цель < порог ≤ 100")
+    cfg = {"ton": body.ton.strip(), "tron": body.tron.strip(), "auto": body.auto, "max_pct": body.max_pct, "target_pct": body.target_pct}
+    await db.settings.update_one({"_id": "global"}, {"$set": {"cold": cfg}}, upsert=True)
+    await audit(a, "cold_config", "cold", cfg, "")
+    return cfg
+
+
+class ColdOut(Comment):
+    asset: str
+    amount: str
+
+
+@router.post("/cold/transfer")
+async def cold_out(body: ColdOut, a=Depends(perm("cold"))):
+    if body.asset not in ASSETS:
+        bad("Неизвестный актив")
+    r = await workers.cold_transfer(body.asset, to_units(body.asset, body.amount))
+    await audit(a, "cold_transfer", r["id"], {"asset": body.asset, "amount": r["amount"], "to": r["to"], "tx": r["tx_hash"]}, body.comment)
+    return r
 
 
 # ---------------- merchants ----------------

@@ -36,6 +36,20 @@ async def public_config():
             "bot_username": await bot.username()}
 
 
+@router.get("/fees")
+async def public_fees():
+    import fees
+    s = await get_settings()
+    s2 = {**s, "fees": {**s["fees"], "tron_energy_new": s["fees"]["tron_energy_existing"]}}
+    return {"withdraw": {"TON": fmt("TON", await fees.withdraw_fee("TON", None, s)),
+                         "USDT_TON": fmt("USDT_TON", await fees.withdraw_fee("USDT_TON", None, s)),
+                         "USDT_TRC20": fmt("USDT_TRC20", await fees.withdraw_fee("USDT_TRC20", None, s2)),
+                         "USDT_TRC20_new": fmt("USDT_TRC20", await fees.withdraw_fee("USDT_TRC20", None, s))},
+            "deposit": {a: c["deposit_fee"] for a, c in s["assets"].items()},
+            "withdraw_min": {a: c["withdraw_min"] for a, c in s["assets"].items()},
+            "swap_pct": s["swap"]["fee_pct"], "merchant_pct": s["merchant_fee_pct"], "referral_pct": s["referral_pct"]}
+
+
 def _user_out(u):
     return {"id": u["_id"], "tg_id": u["tg_id"], "username": u.get("username"), "first_name": u.get("first_name"),
             "frozen": u.get("frozen", False)}

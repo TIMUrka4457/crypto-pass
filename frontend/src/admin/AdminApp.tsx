@@ -66,7 +66,7 @@ export default function AdminApp({ base }: { base: string }) {
             <Route path="users" element={<Users me={me} />} />
             <Route path="deposits" element={<Deposits />} />
             <Route path="withdrawals" element={<Withdrawals />} />
-            <Route path="hot-wallet" element={<HotWallet />} />
+            <Route path="hot-wallet" element={<HotWallet me={me} />} />
             <Route path="merchants" element={<Merchants />} />
             <Route path="monitoring" element={<Monitoring />} />
             <Route path="broadcasts" element={<Broadcasts />} />
