@@ -1,0 +1,107 @@
+{
+  "project_overview": "Telegram custodial crypto wallet + merchant payment gateway. Includes a Telegram Mini App (/app) for users/merchants and a Web Admin Panel (/admin) for platform operators. UI Language: Russian.",
+  "theme": "Dark Mode Default (Respects Telegram Mini App environment). Optional Light Mode toggle for Admin Panel.",
+  "typography": {
+    "headings": {
+      "family": "Unbounded",
+      "style": "tracking-tighter font-semibold to font-black",
+      "instruction": "Do not use Inter, Roboto, or generic sans for headings. Use Unbounded for a bold, crypto/Web3 aesthetic. Keep line-height tight (leading-none)."
+    },
+    "body": {
+      "family": "IBM Plex Sans",
+      "style": "leading-relaxed text-base",
+      "instruction": "Ensure high legibility for financial data. Use tabular-nums for wallet balances and transaction amounts."
+    },
+    "scale": {
+      "h1": "text-3xl sm:text-4xl lg:text-5xl",
+      "h2": "text-2xl sm:text-3xl",
+      "h3": "text-xl sm:text-2xl",
+      "body": "text-sm sm:text-base",
+      "small": "text-xs"
+    }
+  },
+  "colors": {
+    "archetype": "Electric & Neon (Crypto Wallet) + High-Contrast Swiss (Admin)",
+    "palette": {
+      "background": {
+        "mini_app": "#0A0A0A",
+        "admin": "#050505",
+        "instruction": "Deepest void black or dark slate. Never pure #000000 without texture. Tinted grey for cards."
+      },
+      "surface": {
+        "default": "#141414",
+        "hover": "#1F1F1F",
+        "border": "#2E2E2E"
+      },
+      "primary_accent": "#00FF66",
+      "secondary_accent": "#00E5FF",
+      "destructive": "#FF3366",
+      "text": {
+        "primary": "#FFFFFF",
+        "secondary": "#A1A1AA",
+        "muted": "#71717A"
+      }
+    },
+    "contrast_rules": "Maintain WCAG AA (4.5:1). Ensure neon accents are readable against dark backgrounds. Use text-shadow if overlaid on complex backgrounds."
+  },
+  "visual_enhancers": {
+    "surfaces": "Use Glassmorphism (Crystal Variant) for sticky headers: backdrop-blur-xl bg-black/60 border-b border-white/10. NO FULLY TRANSPARENT HEADERS.",
+    "borders": "1px solid strokes or 2px inner glow highlights. Use The Tracing Beam effect for high-tier checks or premium referral cards.",
+    "shadows": "Minimal ambient shadows. Rely on border contrast in dark mode."
+  },
+  "grids_and_layouts": {
+    "mini_app": "Mobile-first list architecture. Generous vertical spacing (gap-6 or gap-8 between sections). Sticky bottom action bars for primary actions (Deposit/Withdraw).",
+    "admin_dashboard": "High Density Grid (Bento style). grid-cols-1 md:grid-cols-4. Tight gaps (gap-4). Cardless or 1px sharp borders. Keep tables compact but readable.",
+    "spacing": "Use Tailwind scale generously. Containers with borders MUST have p-6 or p-8 (padding) to avoid text collision."
+  },
+  "components": {
+    "libraries": [
+      "shadcn/ui (inputs, selects, dialogs, tabs, tables)",
+      "sonner (for toasts/notifications)",
+      "recharts (for admin stats/turnover)"
+    ],
+    "customization_instructions": "Strip 'Vercel-look' from shadcn. Make buttons pill-shaped or sharp-edged. Override shadcn Tabs height 'h-9' to 'h-auto'. Never use native <input type='date'> or <select>.",
+    "icons": {
+      "library": "@phosphor-icons/react",
+      "installation": "yarn add @phosphor-icons/react",
+      "instruction": "Use Phosphor icons for a sharp, high-end technical aesthetic. Use Duotone weight for marketing sections, Regular/Bold for functional UI."
+    }
+  },
+  "motion": {
+    "transitions": "Add transitions for specific interactive elements (e.g., transition: transform 0.2s ease, opacity 0.2s ease). DO NOT use 'transition: all'.",
+    "hover_states": "Slight lift (-translate-y-1), border color brighten, or background lightness shift. Always explicitly set text color on hover.",
+    "micro_interactions": "Entrance staggered animations for list items (transactions, checks). Active press states scale-95 for buttons."
+  },
+  "accessibility": {
+    "contrast": "APCA compliance. Text below 18px needs 4.5:1 ratio.",
+    "focus": "focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background",
+    "testing": "All interactive/key elements MUST include data-testid in kebab-case, role-based (e.g., data-testid='withdraw-submit-button', data-testid='wallet-balance-ton')."
+  },
+  "image_urls": {
+    "description": "Functional app, heavily UI driven. Abstract 3D objects can be used for empty states if needed, but not strictly required. Rely on typography and layout.",
+    "categories": []
+  },
+  "instructions_to_main_agent": [
+    "Develop two distinct areas: Mini App routing under /app (mobile view optimized, fits within Telegram webview) and Admin Panel under /admin (desktop view optimized).",
+    "UI Language must be Russian as requested. Hardcode or use simple dictionary for Russian translations.",
+    "For the Wallet Mini App: Prioritize large, legible balances (use tabular-nums). Action buttons (Deposit, Withdraw, Transfer) must be prominent.",
+    "For the Checks feature: Build an intuitive form with conditions (password, channel sub, captcha, expiry).",
+    "For the Admin panel: Use dense data tables, clear status badges (AML flags, freeze, pending), and an overarching stats dashboard.",
+    "DO NOT apply `.App { text-align: center; }`. Left-align text for readability.",
+    "Never use generic placeholder text or dummy image APIs. If an icon is needed, use Phosphor."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. Avoid the 'AI slop' aesthetic. Make creative, distinctive frontends.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur). DO NOT use complete transparent backgrounds for headers.",
+    "You MUST NOT apply universal transition (e.g., transition: all). Add transitions for specific properties.",
+    "You MUST NOT center align the app container. This disrupts natural reading flow.",
+    "Always use modern button styles (pill-shaped or sharp) with interaction animations.",
+    "NEVER use AI assistant Emoji characters (🤖🧠💭💡) for icons. Use the specified icon library.",
+    "Every interaction needs micro-animations (hover, press, staggered entrance). Static = dead.",
+    "Use 2-3x more spacing than feels comfortable.",
+    "Prioritize reusing existing components from src/components/ui. Create matching ones when needed."
+  ]
+}

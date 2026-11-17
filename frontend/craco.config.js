@@ -109,6 +109,10 @@ let webpackConfig = {
       '@': path.resolve(__dirname, 'src'),
     },
     configure: (webpackConfig) => {
+      // Type-check only: shadcn ui components are untyped .jsx, so skip TS checker (Babel still compiles TS).
+      webpackConfig.plugins = webpackConfig.plugins.filter(
+        (p) => p.constructor.name !== "ForkTsCheckerWebpackPlugin"
+      );
 
       // Add ignored patterns to reduce watched directories
         webpackConfig.watchOptions = {
