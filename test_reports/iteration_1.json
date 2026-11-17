@@ -1,0 +1,41 @@
+{
+  "summary": "First test run. Backend: 11/11 pytest pass (fees, admin gate, withdraw/swap quotes, deposit addresses, full funded flow adjust->transfer->check claim->swap(+409 on min_receive)->invoice pay->history kinds->debit back, finance 7/30/90, cold invalid address 400, hot-wallet, settings, recreate addresses). Bot modules import OK; fees TON 0.05 / USDT_TON 0.4 / USDT_TRC20 2.8 (5.1 new addr). Security: nosniff present, 429 after ~180 req/min. Frontend: /app compiles (no babel overlay), outside TG shows 'Кошелёк живёт внутри Telegram'; with signed initData Home renders 8 equal tiles (84x80 mobile, 107x80 desktop, no horizontal overflow); deposit ton/tron + TRC20 fee hint; withdraw fee 0.05 TON (not submitted); swap 10 TON -> 10.5138 USDT quote; settings recreate addresses toast; delete flow on 900000099 works. Admin: /admin 404 page, hidden path login with email+password+OTP, Finance cards+day switch, Hot wallet topup with 2 addresses+2 QR, cold save validation error 'Некорректный адрес TON', Settings toggles + save, mobile admin nav. Public site: all 5 pages, fees-table from /api/fees, api-endpoints, nav + mobile menu, no admin login mention. One security bug found (X-Forwarded-For spoof bypasses rate limits).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "security.py client_ip (all /api, incl. /api/admin/auth and /api/p/)", "issue": "Rate limit keyed on FIRST X-Forwarded-For value, which the client controls. Reproduced: after hitting 429 on /api/fees, same client with header 'X-Forwarded-For: 1.2.3.79' got 200 immediately. Attacker can bypass the 10/min admin-auth and /api/p/ panel-key brute-force limits and the 180/min API limit by rotating the header. Fix: use the LAST (ingress-appended) hop / trusted proxy count, not fwd.split(',')[0].", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/admin/users/{uid}/adjust", "issue": "direction not validated: any value other than 'credit' is treated as debit; asset not validated against ASSETS (unknown asset -> likely 500 from to_units)."},
+      {"endpoint": "PUT /api/admin/cold", "issue": "Rejects deposit addresses but NOT the hot wallet address itself (UQBIHObl... can be saved as cold -> cold transfers to self). Non-numeric max_pct/target_pct -> float() ValueError 500 instead of 400."},
+      {"endpoint": "POST /api/account/delete + POST /api/auth/telegram", "issue": "After deletion, next mini-app login (upsert_tg_user) re-writes username/first_name, undoing the anonymisation; deleted user sees only generic 'Аккаунт заморожен' banner and Settings still shows 'Удалить аккаунт' button (would return 'Аккаунт уже удалён'). Consider blocking/marking deleted users in auth and showing a 'deleted' state."},
+      {"endpoint": "swap", "issue": "Cross-network USDT_TON <-> USDT_TRC20 swap allowed at 1:1 (fees page says only 'Обмен TON ↔ USDT') — confirm intended; moves liability between chains' hot wallets."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Admin HotWallet Cold form", "issue": "Possible race: in one run the typed value 'abc' was overwritten and the form saved the original (empty) config with toast 'Сохранено'; on retry (after waiting 3s) it behaved correctly. useEffect(setC(data.cold)) on late/second settings load can clobber user input. Low priority.", "selector": "[data-testid='cold-ton'], [data-testid='cold-save']", "priority": "LOW"},
+      {"component": "Mini app Swap", "issue": "'Обменять' (swap-submit-button) enabled with 'Доступно: 0 TON' and amount > balance; error only after server call. Consider disabling/inline hint.", "selector": "[data-testid='swap-submit-button']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_t1_funds_flows.py", "/app/backend/tests/t1_gen_init.py", "/app/backend/tests/admin_login_once.py", "/app/backend/tests/t1_cleanup.py", "/app/test_reports/pytest/t1_iter1.xml"],
+  "action_items": [
+    "HIGH: fix client_ip in security.py so X-Forwarded-For cannot be spoofed to bypass rate limits (use rightmost/trusted hop).",
+    "Validate direction in ('credit','debit') and asset in ASSETS for admin adjust.",
+    "PUT /cold: reject hot wallet addresses; return 400 for non-numeric pct.",
+    "Handle deleted accounts on re-login (don't restore username; show deleted state; hide delete button).",
+    "Minor: guard cold form against state reset after user edits; disable swap submit when amount > available."
+  ],
+  "critical_code_review_comments": [
+    "security.py client_ip trusts client-supplied first XFF hop (see critical).",
+    "bot_chat.py is 773 lines (>700) — consider splitting.",
+    "OTP_DEBUG_LOG=true prints admin OTP to logs — must be disabled before production (already noted in creds file)."
+  ],
+  "updated_files": ["/app/backend/tests/admin_login_once.py (added X-Panel-Key + new-OTP detection)", "/app/backend/tests/test_t1_funds_flows.py", "/app/backend/tests/t1_gen_init.py", "/app/backend/tests/t1_cleanup.py"],
+  "success_rate": {"backend": "100% (11/11 pytest) — 1 security bug found separately", "frontend": "~95% (all requested flows work; 2 low-priority UX issues)"},
+  "seed_data_creation": "Created TEST users 900000001 (test_ec_a), 900000002 (test_ec_b), 900000099 (test_ec_del). Funded A with 5 TON via admin adjust. CLEANED: 9 journal docs reversed on balances then deleted (adjust x4, transfer, check_create, check_claim, swap, invoice_payment) — sys:adjust/sys:swap/sys:fees balances restored; 4 user balance docs, 1 check, 2 invoices (incl. earlier main-agent 'TEST_invoice' of 900000001), 1 invoice_payment, 5 deposit_addresses, 3 activity docs, 3 users deleted. Ledger reconcile ok=true after cleanup. Left intact: 4 admin audit_log entries (balance_adjust trail) + audit for cold_config/settings saves (values unchanged: cold ton/tron empty, settings re-saved as-is). Earlier main-agent user 9990000001 not touched. No withdrawals, cold transfers or approvals performed.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run pytest with '-n 0' (pytest.ini adds xdist). Prereqs: /etc/supervisor/emergent-env-exec /root/.venv/bin/python tests/t1_gen_init.py (writes /tmp/t1_init.json) and tests/admin_login_once.py EMAIL PW PANEL_KEY (writes /tmp/admin_token; counts toward 10/min admin auth limit). Run cleanup with env from backend/.env: set -a; . ./.env; set +a; python tests/t1_cleanup.py. Browser automation can read /var/log/supervisor/backend.err.log for OTP. Mini app: sessionStorage tg_init_override then load /app. Parallel requests through ingress time out — use sequential session for rate-limit test."
+}
