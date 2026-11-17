@@ -28,10 +28,10 @@ export default function Dashboard() {
         </div>
       )}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <Stat label="Пользователи" value={s.users} testid="stat-users" to="/admin/users" />
+        <Stat label="Пользователи" value={s.users} testid="stat-users" to="users" />
         <Stat label="DAU сегодня" value={s.dau_today} testid="stat-dau" />
-        <Stat label="Выводы ждут одобрения" value={s.pending_withdrawals} testid="stat-pending-withdrawals" to="/admin/withdrawals" />
-        <Stat label="AML-удержания" value={s.aml_holds} testid="stat-aml-holds" to="/admin/deposits" />
+        <Stat label="Выводы ждут одобрения" value={s.pending_withdrawals} testid="stat-pending-withdrawals" to="withdrawals" />
+        <Stat label="AML-удержания" value={s.aml_holds} testid="stat-aml-holds" to="deposits" />
         <div className="border border-white/10 bg-[#0c0c0c] p-6 md:col-span-2 md:row-span-2">
           <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">DAU · 14 дней</p>
           <div className="mt-4 h-56">
@@ -54,8 +54,8 @@ export default function Dashboard() {
           {ASSET_LIST.map((a) => <p key={a} className="mt-2 flex justify-between text-sm"><span className="text-zinc-400">{ASSET_TITLE[a]}</span><span className="tabular text-[#00FF66]" data-testid={`stat-fees-${a}`}>{s.fees[a]}</span></p>)}
         </div>
         <Stat label="Выводы в обработке" value={s.processing_withdrawals} testid="stat-processing" />
-        <Stat label="Мерчанты на одобрении" value={s.pending_merchants} testid="stat-pending-merchants" to="/admin/merchants" />
-        <Stat label="Сверка журнала" value={s.reconcile_ok == null ? "—" : s.reconcile_ok ? "OK" : "Ошибка"} testid="stat-reconcile" to="/admin/audit" />
+        <Stat label="Мерчанты на одобрении" value={s.pending_merchants} testid="stat-pending-merchants" to="merchants" />
+        <Stat label="Сверка журнала" value={s.reconcile_ok == null ? "—" : s.reconcile_ok ? "OK" : "Ошибка"} testid="stat-reconcile" to="audit" />
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Copy } from "@phosphor-icons/react";
 import { Switch } from "@/components/ui/switch";
 import { userApi, errMsg, ASSET_TITLE } from "@/lib/api";
-import { AssetPicker, Field, PageHeader, Panel, PrimaryButton, Status, inputCls } from "../ui";
+import { AssetPicker, Field, PageHeader, Panel, PrimaryButton, Segmented, Status, inputCls } from "../ui";
 import { useWallet } from "../MiniApp";
 
 const empty = { kind: "personal", amount: "", activations: "10", bind_username: "", password: "", captcha: true,
@@ -49,12 +49,7 @@ export default function Checks() {
     <div>
       <PageHeader title="Чеки" />
       <div className="space-y-6">
-        <div className="flex gap-2">
-          {[["personal", "Персональный"], ["multi", "Мульти-чек"]].map(([k, l]) => (
-            <button key={k} data-testid={`check-kind-${k}`} onClick={() => setF({ ...f, kind: k })}
-              className={`press rounded-full border px-4 py-2 text-sm ${f.kind === k ? "border-[#00E5FF] text-[#00E5FF]" : "border-white/15 text-zinc-400"}`}>{l}</button>
-          ))}
-        </div>
+        <Segmented testid="check-kind" value={f.kind} onChange={(k) => setF({ ...f, kind: k })} options={[["personal", "Персональный"], ["multi", "Мульти-чек"]]} />
         <AssetPicker value={asset} onChange={setAsset} testid="check-asset" />
         <Field label={f.kind === "multi" ? "Сумма за одну активацию" : "Сумма"}>
           <input data-testid="check-amount-input" inputMode="decimal" className={inputCls} value={f.amount} onChange={set("amount")} placeholder="0.00" />
@@ -103,7 +98,7 @@ export default function Checks() {
                 className="mt-3 flex w-full items-center gap-2 truncate text-left text-xs text-[#00E5FF]"><Copy size={14} /> {c.link}</button>
             )}
             {c.status === "active" && (
-              <button data-testid={`check-cancel-${c.id}`} onClick={() => cancel(c.id)} className="press mt-3 rounded-full border border-[#FF3366]/40 px-4 py-1.5 text-xs text-[#FF3366]">Отменить и вернуть</button>
+              <button data-testid={`check-cancel-${c.id}`} onClick={() => cancel(c.id)} className="press btn-danger mt-3">Отменить и вернуть</button>
             )}
           </Panel>
         ))}

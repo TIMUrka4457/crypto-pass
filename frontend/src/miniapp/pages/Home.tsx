@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowDown, ArrowUp, PaperPlaneTilt, Ticket, Receipt, UsersThree, Storefront, Snowflake } from "@phosphor-icons/react";
+import { ArrowDown, ArrowUp, PaperPlaneTilt, Ticket, Receipt, UsersThree, Storefront, Snowflake, ClockCounterClockwise } from "@phosphor-icons/react";
 import { userApi, ASSET_LIST, ASSET_TITLE } from "@/lib/api";
 import { useWallet } from "../MiniApp";
 
@@ -14,6 +14,7 @@ const MORE = [
   { to: "invoices", label: "Счета", icon: Receipt },
   { to: "referral", label: "Рефералы", icon: UsersThree },
   { to: "merchant", label: "Мерчант", icon: Storefront },
+  { to: "history", label: "История", icon: ClockCounterClockwise },
 ];
 
 export default function Home() {
@@ -52,24 +53,16 @@ export default function Home() {
           </div>
         ))}
       </div>
-      <div className="mt-10 grid grid-cols-4 gap-3">
-        {ACTIONS.map(({ to, label, icon: Icon, accent }) => (
-          <Link key={to} to={`/app/${to}`} data-testid={`action-${to}`}
-            className={`press flex flex-col items-center gap-2 rounded-2xl border py-4 text-xs ${accent ? "border-[#00FF66] bg-[#00FF66] text-black" : "border-white/10 bg-[#141414] text-zinc-200 hover:border-white/30"}`}>
+      <div className="mt-10 grid grid-cols-4 gap-2 sm:gap-3">
+        {[...ACTIONS, ...MORE].map(({ to, label, icon: Icon, accent }: any) => (
+          <Link key={to} to={to === "history" ? "/app" : `/app/${to}`} data-testid={`action-${to}`}
+            onClick={to === "history" ? () => document.getElementById("history")?.scrollIntoView({ behavior: "smooth" }) : undefined} flex-col items-center justify-center gap-2 rounded-2xl border px-1 text-center text-[11px] leading-tight sm:text-xs ${accent ? "border-[#00FF66] bg-[#00FF66] text-black" : "border-white/10 bg-[#141414] text-zinc-200 hover:border-white/30"}`}>
             <Icon size={22} weight="bold" />
             {label}
           </Link>
         ))}
       </div>
-      <div className="mt-3 grid grid-cols-3 gap-3">
-        {MORE.map(({ to, label, icon: Icon }) => (
-          <Link key={to} to={`/app/${to}`} data-testid={`action-${to}`}
-            className="press flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-3 text-xs text-zinc-300 hover:border-white/30">
-            <Icon size={18} /> {label}
-          </Link>
-        ))}
-      </div>
-      <h2 className="mt-12 font-display text-sm uppercase tracking-[0.2em] text-zinc-500">История</h2>
+      <h2 id="history" className="mt-12 font-display text-sm uppercase tracking-[0.2em] text-zinc-500">История</h2>
       <div className="mt-4 space-y-1" data-testid="history-list">
         {hist.length === 0 && <p className="text-sm text-zinc-600">Пока нет операций</p>}
         {hist.map((h, i) => (

@@ -21,7 +21,7 @@ export default function Referral() {
           <p className="mt-3 break-all text-sm" data-testid="referral-link">{d.link || "Бот не настроен"}</p>
           {d.link && (
             <button data-testid="referral-copy-button" onClick={() => { navigator.clipboard?.writeText(d.link); toast.success("Скопировано"); }}
-              className="press mt-4 inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm"><Copy size={16} /> Скопировать</button>
+              className="press btn-secondary mt-4 w-full sm:w-auto"><Copy size={16} /> Скопировать</button>
           )}
         </Panel>
         <div className="grid grid-cols-2 gap-3">

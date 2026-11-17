@@ -25,7 +25,7 @@ def miniapp_url(param: str | None = None) -> str:
     return f"{base}?start={param}" if param else base
 
 
-async def send(uid: str, text: str, button: tuple | None = None) -> bool:
+async def send(uid: str, text: str, button: tuple | None = None, parse_mode: str | None = None) -> bool:
     b = _get_bot()
     if not b:
         return False
@@ -34,7 +34,7 @@ async def send(uid: str, text: str, button: tuple | None = None) -> bool:
     if button:
         kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=button[0], web_app=WebAppInfo(url=button[1]))]])
     try:
-        await b.send_message(int(uid), text, reply_markup=kb)
+        await b.send_message(int(uid), text, reply_markup=kb, parse_mode=parse_mode)
         return True
     except Exception as e:
         log.info("bot send to %s failed: %s", uid, e)
@@ -64,33 +64,11 @@ async def username() -> str | None:
 
 
 def _build_dispatcher():
-    from aiogram import Dispatcher, F
-    from aiogram.filters import CommandStart, CommandObject
-    from aiogram.types import Message
-    from auth import upsert_tg_user
+    from aiogram import Dispatcher
+    import bot_chat
 
     dp = Dispatcher()
-
-    @dp.message(CommandStart())
-    async def start(msg: Message, command: CommandObject):
-        arg = command.args or ""
-        ref = arg[2:] if arg.startswith("r_") else None
-        await upsert_tg_user(msg.from_user.model_dump(), ref)
-        if arg.startswith("c_"):
-            await send(str(msg.from_user.id), "Вам отправили чек. Откройте кошелёк, чтобы забрать его.",
-                       ("Забрать чек", miniapp_url(arg)))
-        elif arg.startswith("i_"):
-            await send(str(msg.from_user.id), "Счёт на оплату. Откройте кошелёк, чтобы оплатить.",
-                       ("Открыть счёт", miniapp_url(arg)))
-        else:
-            await send(str(msg.from_user.id),
-                       "Кошелёк создан. Здесь можно хранить TON и USDT, переводить друзьям по @username, "
-                       "создавать чеки и принимать оплату.", ("Открыть кошелёк", miniapp_url()))
-
-    @dp.message(F.text)
-    async def other(msg: Message):
-        await send(str(msg.from_user.id), "Откройте кошелёк кнопкой ниже.", ("Открыть кошелёк", miniapp_url()))
-
+    dp.include_router(bot_chat.router)
     return dp
 
 

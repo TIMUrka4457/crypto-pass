@@ -25,7 +25,7 @@ export function Btn({ children, onClick, tone = "ghost", testid, disabled }:
   { children: ReactNode; onClick?: () => void; tone?: "ghost" | "primary" | "danger"; testid: string; disabled?: boolean }) {
   const cls = tone === "primary" ? "bg-[#00FF66] text-black hover:bg-[#33ff85]" : tone === "danger"
     ? "border border-[#FF3366]/50 text-[#FF3366] hover:bg-[#FF3366]/10" : "border border-white/15 text-zinc-200 hover:border-white/40";
-  return <button data-testid={testid} disabled={disabled} onClick={onClick} className={`press rounded-md px-3 py-1.5 text-xs font-medium disabled:opacity-40 ${cls}`}>{children}</button>;
+  return <button data-testid={testid} disabled={disabled} onClick={onClick} className={`press inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3.5 text-xs font-medium disabled:opacity-40 ${cls}`}>{children}</button>;
 }
 
 export function Table({ cols, rows, testid }: { cols: string[]; rows: ReactNode[][]; testid: string }) {

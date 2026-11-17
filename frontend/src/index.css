@@ -31,6 +31,15 @@ body {
 
 ::selection { background: #00ff66; color: #0a0a0a; }
 
+@layer components {
+    .btn-chip { @apply inline-flex h-11 min-w-0 items-center justify-center truncate rounded-full border px-4 text-sm; }
+    .btn-secondary { @apply inline-flex h-11 items-center justify-center gap-2 rounded-full border border-white/15 px-5 text-sm text-zinc-200 hover:border-white/40; }
+    .btn-danger { @apply inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#FF3366]/40 px-5 text-sm text-[#FF3366] hover:bg-[#FF3366]/10; }
+}
+
+button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+input, textarea, select { font-size: 16px; }
+
 @layer base {
     :root, .dark {
         --background: 0 0% 4%;

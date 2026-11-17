@@ -6,7 +6,7 @@ import { ASSET_LIST, ASSET_TITLE, STATUS_RU } from "@/lib/api";
 export function PageHeader({ title, back = true }: { title: string; back?: boolean }) {
   const nav = useNavigate();
   return (
-    <div className="sticky top-0 z-20 -mx-5 mb-6 flex items-center gap-3 border-b border-white/10 bg-black/60 px-5 py-4 backdrop-blur-xl">
+    <div className="sticky top-0 z-20 -mx-4 mb-6 flex items-center gap-3 border-b border-white/10 bg-black/60 px-4 py-4 backdrop-blur-xl sm:-mx-6 sm:px-6">
       {back && (
         <button data-testid="page-back-button" onClick={() => nav("/app")} className="press rounded-full border border-white/10 p-2 hover:border-white/30">
           <CaretLeft size={18} />
@@ -20,10 +20,10 @@ export function PageHeader({ title, back = true }: { title: string; back?: boole
 export function AssetPicker({ value, onChange, assets = ASSET_LIST as readonly string[], testid = "asset-picker" }:
   { value: string; onChange: (a: string) => void; assets?: readonly string[]; testid?: string }) {
   return (
-    <div className="flex flex-wrap gap-2" data-testid={testid}>
+    <div className="grid grid-cols-3 gap-2" data-testid={testid}>
       {assets.map((a) => (
         <button key={a} type="button" data-testid={`${testid}-${a}`} onClick={() => onChange(a)}
-          className={`press rounded-full border px-4 py-2 text-sm ${value === a ? "border-[#00FF66] bg-[#00FF66] text-black" : "border-white/15 text-zinc-300 hover:border-white/40"}`}>
+          className={`press btn-chip px-2 ${value === a ? "border-[#00FF66] bg-[#00FF66] text-black" : "border-white/15 text-zinc-300 hover:border-white/40"}`}>
           {ASSET_TITLE[a]}
         </button>
       ))}
@@ -64,10 +64,22 @@ export function PrimaryButton({ children, testid, disabled, onClick, type = "but
   { children: ReactNode; testid: string; disabled?: boolean; onClick?: () => void; type?: "button" | "submit" }) {
   return (
     <button type={type} data-testid={testid} disabled={disabled} onClick={onClick}
-      className="press w-full rounded-full bg-[#00FF66] px-6 py-4 font-display text-sm font-semibold text-black hover:bg-[#33ff85] disabled:opacity-40">
+      className="press flex h-14 w-full items-center justify-center rounded-full bg-[#00FF66] px-6 font-display text-sm font-semibold text-black hover:bg-[#33ff85] disabled:opacity-40">
       {children}
     </button>
   );
 }
 
-export const inputCls = "w-full rounded-xl border border-white/10 bg-[#0f0f0f] px-4 py-3 text-base text-white placeholder:text-zinc-600 focus:border-[#00FF66] focus:outline-none";
+export function Segmented({ options, value, onChange, testid }:
+  { options: string[][]; value: string; onChange: (v: string) => void; testid: string }) {
+  return (
+    <div className="grid grid-cols-2 gap-2" data-testid={testid}>
+      {options.map(([k, l]) => (
+        <button key={k} type="button" data-testid={`${testid}-${k}`} onClick={() => onChange(k)}
+          className={`press btn-chip ${value === k ? "border-[#00E5FF] text-[#00E5FF]" : "border-white/15 text-zinc-400"}`}>{l}</button>
+      ))}
+    </div>
+  );
+}
+
+export const inputCls = "h-12 w-full rounded-xl border border-white/10 bg-[#0f0f0f] px-4 text-base text-white placeholder:text-zinc-600 focus:border-[#00FF66] focus:outline-none";

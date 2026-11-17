@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Copy } from "@phosphor-icons/react";
 import { userApi, errMsg, ASSET_TITLE } from "@/lib/api";
-import { AssetPicker, Field, PageHeader, Panel, PrimaryButton, Status, inputCls } from "../ui";
+import { AssetPicker, Field, PageHeader, Panel, PrimaryButton, Segmented, Status, inputCls } from "../ui";
 
 export default function Invoices() {
   const [asset, setAsset] = useState("USDT_TON");
@@ -29,12 +29,7 @@ export default function Invoices() {
     <div>
       <PageHeader title="Счета" />
       <div className="space-y-6">
-        <div className="flex gap-2">
-          {[["single", "Одиночный"], ["multi", "Мульти-счёт"]].map(([k, l]) => (
-            <button key={k} data-testid={`invoice-kind-${k}`} onClick={() => setKind(k)}
-              className={`press rounded-full border px-4 py-2 text-sm ${kind === k ? "border-[#00E5FF] text-[#00E5FF]" : "border-white/15 text-zinc-400"}`}>{l}</button>
-          ))}
-        </div>
+        <Segmented testid="invoice-kind" value={kind} onChange={setKind} options={[["single", "Одиночный"], ["multi", "Мульти-счёт"]]} />
         <AssetPicker value={asset} onChange={setAsset} testid="invoice-asset" />
         <Field label="Сумма"><input data-testid="invoice-amount-input" inputMode="decimal" className={inputCls} value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
         {kind === "multi" && (
@@ -48,8 +43,8 @@ export default function Invoices() {
           <Panel key={i.id}>
             <div className="flex justify-between"><span className="tabular">{i.amount} {ASSET_TITLE[i.asset]}</span><Status s={i.status} testid={`invoice-status-${i.id}`} /></div>
             <p className="mt-1 text-xs text-zinc-500">{i.description} · оплат: {i.paid_count}{i.max_payments ? `/${i.max_payments}` : ""}</p>
-            {i.pay_url && <button onClick={() => { navigator.clipboard?.writeText(i.pay_url); toast.success("Скопировано"); }} className="mt-2 flex items-center gap-2 truncate text-xs text-[#00E5FF]"><Copy size={14} />{i.pay_url}</button>}
-            {i.status === "active" && <button data-testid={`invoice-cancel-${i.id}`} onClick={() => cancel(i.id)} className="press mt-3 rounded-full border border-[#FF3366]/40 px-4 py-1.5 text-xs text-[#FF3366]">Отменить</button>}
+            {i.pay_url && <button onClick={() => { navigator.clipboard?.writeText(i.pay_url); toast.success("Скопировано"); }} className="mt-2 flex w-full items-center gap-2 truncate text-left text-xs text-[#00E5FF]"><Copy size={14} />{i.pay_url}</button>}
+            {i.status === "active" && <button data-testid={`invoice-cancel-${i.id}`} onClick={() => cancel(i.id)} className="press btn-danger mt-3">Отменить</button>}
           </Panel>
         ))}
       </div>

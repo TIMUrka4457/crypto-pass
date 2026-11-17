@@ -1,8 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import MiniApp from "@/miniapp/MiniApp";
-import AdminApp from "@/admin/AdminApp";
 import Landing from "@/Landing";
+import AdminGate, { NotFound } from "@/AdminGate";
 
 export default function App() {
   return (
@@ -11,7 +11,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/app/*" element={<MiniApp />} />
-          <Route path="/admin/*" element={<AdminApp />} />
+          <Route path="/admin/*" element={<NotFound />} />
+          <Route path="/:key/*" element={<AdminGate />} />
         </Routes>
       </BrowserRouter>
       <Toaster theme="dark" position="top-center" richColors />

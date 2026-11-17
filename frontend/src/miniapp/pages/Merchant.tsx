@@ -44,7 +44,7 @@ export default function Merchant() {
                 <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">API-ключи</p>
                 <button data-testid="merchant-new-key-button" onClick={async () => {
                   try { const r = await userApi.post("/merchant/keys", { label: "" }); setNewKey(r.data.api_key); load(); } catch (e) { toast.error(errMsg(e)); }
-                }} className="press inline-flex items-center gap-1 rounded-full bg-[#00FF66] px-3 py-1.5 text-xs font-semibold text-black"><Key size={14} /> Новый ключ</button>
+                }} className="press inline-flex h-11 items-center gap-2 rounded-full bg-[#00FF66] px-5 text-sm font-semibold text-black"><Key size={16} /> Новый ключ</button>
               </div>
               {newKey && (
                 <div className="mt-4 rounded-xl border border-amber-300/40 p-3" data-testid="merchant-new-key">
@@ -67,7 +67,7 @@ export default function Merchant() {
                 <input data-testid="merchant-webhook-input" className={inputCls} value={hook} onChange={(e) => setHook(e.target.value)} placeholder="https://shop.example/webhook" />
               </Field>
               <p className="mt-3 break-all text-xs text-zinc-500">Секрет: <span className="font-mono-num text-zinc-300" data-testid="merchant-webhook-secret">{m.webhook_secret}</span></p>
-              <button data-testid="merchant-webhook-save" onClick={() => act(() => userApi.put("/merchant/webhook", { url: hook }), "Сохранено")} className="press mt-4 rounded-full border border-white/15 px-4 py-2 text-sm">Сохранить</button>
+              <button data-testid="merchant-webhook-save" onClick={() => act(() => userApi.put("/merchant/webhook", { url: hook }), "Сохранено")} className="press btn-secondary mt-4">Сохранить</button>
             </Panel>
             {m.webhooks.length > 0 && (
               <div className="space-y-2" data-testid="merchant-webhooks">

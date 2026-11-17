@@ -3,7 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Copy } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { userApi, errMsg, ASSET_TITLE } from "@/lib/api";
-import { PageHeader, Panel, Status } from "../ui";
+import { PageHeader, Panel, Segmented, Status } from "../ui";
 
 export default function Deposit() {
   const [net, setNet] = useState("ton");
@@ -21,20 +21,15 @@ export default function Deposit() {
   return (
     <div>
       <PageHeader title="Пополнить" />
-      <div className="flex gap-2">
-        {[["ton", "TON · USDT"], ["tron", "TRON · USDT TRC20"]].map(([k, l]) => (
-          <button key={k} data-testid={`deposit-network-${k}`} onClick={() => setNet(k)}
-            className={`press rounded-full border px-4 py-2 text-sm ${net === k ? "border-[#00E5FF] text-[#00E5FF]" : "border-white/15 text-zinc-400"}`}>{l}</button>
-        ))}
-      </div>
+      <Segmented testid="deposit-network" value={net} onChange={setNet} options={[["ton", "TON · USDT"], ["tron", "TRON · TRC20"]]} />
       {err && <p className="mt-6 text-sm text-[#FF3366]" data-testid="deposit-error">{err}</p>}
       {data && (
         <div className="rise mt-8 space-y-6">
-          <div className="w-fit rounded-2xl bg-white p-4"><QRCodeSVG value={data.address} size={180} /></div>
+          <div className="mx-auto w-fit rounded-2xl bg-white p-4 sm:mx-0"><QRCodeSVG value={data.address} size={180} /></div>
           <Panel>
             <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Ваш адрес для депозита</p>
             <p data-testid="deposit-address" className="mt-3 break-all font-mono-num text-sm">{data.address}</p>
-            <button data-testid="deposit-copy-button" onClick={copy} className="press mt-4 inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm hover:border-white/40">
+            <button data-testid="deposit-copy-button" onClick={copy} className="press btn-secondary mt-4 w-full sm:w-auto">
               <Copy size={16} /> Скопировать
             </button>
           </Panel>

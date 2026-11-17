@@ -1,8 +1,10 @@
+import hmac
+import os
 import re
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
 import bot
@@ -14,7 +16,24 @@ from routes_user import history_rows
 from services import credit_deposit, refund_withdrawal, public_wd, cancel_invoice, units0
 import workers
 
-router = APIRouter(prefix="/api/admin")
+def _panel_ok(key: str | None) -> bool:
+    return bool(key) and hmac.compare_digest(key, os.environ["ADMIN_PANEL_PATH"])
+
+
+async def panel_gate(x_panel_key: str = Header(None)):
+    if not _panel_ok(x_panel_key):
+        raise HTTPException(404, "Not Found")
+
+
+gate_router = APIRouter(prefix="/api")
+router = APIRouter(prefix="/api/admin", dependencies=[Depends(panel_gate)])
+
+
+@gate_router.get("/p/{key}")
+async def panel_check(key: str):
+    if not _panel_ok(key):
+        raise HTTPException(404, "Not Found")
+    return {"ok": True}
 
 
 def ser(d: dict) -> dict:

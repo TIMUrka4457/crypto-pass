@@ -13,6 +13,8 @@ export const adminApi = axios.create({ baseURL: `${API}/admin` });
 adminApi.interceptors.request.use((c) => {
   const t = localStorage.getItem("at");
   if (t) c.headers.Authorization = `Bearer ${t}`;
+  const pk = sessionStorage.getItem("pk");
+  if (pk) c.headers["X-Panel-Key"] = pk;
   return c;
 });
 adminApi.interceptors.response.use(
@@ -20,7 +22,7 @@ adminApi.interceptors.response.use(
   (e) => {
     if (e?.response?.status === 401 && localStorage.getItem("at")) {
       localStorage.removeItem("at");
-      window.location.href = "/admin";
+      window.location.reload();
     }
     return Promise.reject(e);
   }

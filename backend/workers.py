@@ -345,7 +345,10 @@ async def _loop(name, fn, every, stop: asyncio.Event):
 
 def start_all(stop: asyncio.Event) -> list:
     import bot
+    import admin_bot
     tasks = [asyncio.create_task(_loop(n, f, e, stop)) for n, f, e in JOBS]
     tasks.append(asyncio.create_task(_loop("broadcast", bot.broadcast_worker, 5, stop)))
+    tasks.append(asyncio.create_task(_loop("admin_notify", admin_bot.notify_job, 20, stop)))
     tasks.append(asyncio.create_task(bot.run_polling(stop)))
+    tasks.append(asyncio.create_task(admin_bot.run_polling(stop)))
     return tasks

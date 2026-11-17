@@ -26,7 +26,7 @@ export default function Landing() {
     <div className="relative z-10 mx-auto max-w-6xl px-6 py-14 sm:px-10">
       <header className="flex items-center justify-between">
         <p className="font-display text-lg font-black tracking-tighter">Easy<span className="text-[#00FF66]">Crypto</span></p>
-        <a href="/admin" data-testid="landing-admin-link" className="text-sm text-zinc-500 hover:text-white">Админка</a>
+        <a href="#api" data-testid="landing-api-link" className="text-sm text-zinc-500 hover:text-white">API</a>
       </header>
       <section className="mt-24 grid gap-12 lg:grid-cols-[1.4fr_1fr]">
         <div>

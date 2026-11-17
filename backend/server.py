@@ -44,7 +44,8 @@ INDEXES: dict[str, list[IndexModel]] = {
                      IndexModel([("merchant_id", ASCENDING), ("created_at", DESCENDING)], name="merchant")],
     "sweeps": [IndexModel([("address_id", ASCENDING), ("status", ASCENDING)], name="addr_status"),
                IndexModel([("status", ASCENDING)], name="status")],
-    "admins": [IndexModel([("email", ASCENDING)], name="email", unique=True)],
+    "admins": [IndexModel([("email", ASCENDING)], name="email", unique=True),
+               IndexModel([("tg_id", ASCENDING)], name="tg_id", sparse=True)],
     "audit_log": [IndexModel([("at", DESCENDING)], name="at")],
     "activity": [IndexModel([("day", ASCENDING)], name="day")],
     "rate": [IndexModel([("at", ASCENDING)], name="ttl", expireAfterSeconds=180)],
@@ -66,6 +67,7 @@ app = FastAPI(title="NeonWallet API")
 app.include_router(routes_user.router)
 app.include_router(routes_merchant.router)
 app.include_router(routes_admin.router)
+app.include_router(routes_admin.gate_router)
 
 
 @app.get("/api/health")

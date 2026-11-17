@@ -67,7 +67,7 @@ export default function MiniApp() {
 
   return (
     <WalletCtx.Provider value={{ me, config, refresh }}>
-      <div className="relative z-10 mx-auto min-h-screen max-w-md px-5 pb-16" data-testid="miniapp-root">
+      <div className="relative z-10 mx-auto min-h-screen w-full max-w-md px-4 pb-16 sm:max-w-lg sm:px-6" data-testid="miniapp-root">
         <Routes>
           <Route index element={<Home />} />
           <Route path="deposit" element={<Deposit />} />

@@ -22,7 +22,7 @@ const NAV = [
   ["audit", "Журнал и админы", ListChecks],
 ] as const;
 
-export default function AdminApp() {
+export default function AdminApp({ base }: { base: string }) {
   const [me, setMe] = useState<any>(null);
   const [checked, setChecked] = useState(false);
   useEffect(() => {
@@ -38,23 +38,27 @@ export default function AdminApp() {
         <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-zinc-600">admin · {me.role}</p>
         <nav className="mt-8 flex flex-1 flex-col gap-1">
           {NAV.map(([to, label, Icon]) => (
-            <NavLink key={to} end to={`/admin/${to}`} data-testid={`admin-nav-${to || "dashboard"}`}
+            <NavLink key={to} end to={`${base}/${to}`} data-testid={`admin-nav-${to || "dashboard"}`}
               className={({ isActive }) => `press flex items-center gap-3 rounded-md px-3 py-2 text-sm ${isActive ? "bg-[#00FF66] text-black" : "text-zinc-400 hover:bg-white/5 hover:text-white"}`}>
               <Icon size={18} /> {label}
             </NavLink>
           ))}
         </nav>
         <p className="truncate text-xs text-zinc-500">{me.email}</p>
-        <button data-testid="admin-logout" onClick={() => { localStorage.removeItem("at"); window.location.href = "/admin"; }}
+        <button data-testid="admin-logout" onClick={() => { localStorage.removeItem("at"); window.location.href = base; }}
           className="press mt-3 flex items-center gap-2 text-sm text-zinc-400 hover:text-white"><SignOut size={16} /> Выйти</button>
       </aside>
       <div className="w-full min-w-0">
-        <nav className="flex gap-1 overflow-x-auto border-b border-white/10 p-2 md:hidden">
+        <nav className="sticky top-0 z-20 flex gap-2 overflow-x-auto border-b border-white/10 bg-[#050505]/90 p-3 backdrop-blur md:hidden">
           {NAV.map(([to, label]) => (
-            <NavLink key={to} end to={`/admin/${to}`} className={({ isActive }) => `whitespace-nowrap rounded px-3 py-1.5 text-xs ${isActive ? "bg-[#00FF66] text-black" : "text-zinc-400"}`}>{label}</NavLink>
+            <NavLink key={to} end to={`${base}/${to}`} data-testid={`admin-mnav-${to || "dashboard"}`} className={({ isActive }) => `inline-flex h-10 shrink-0 items-center whitespace-nowrap rounded-md px-4 text-sm ${isActive ? "bg-[#00FF66] text-black" : "border border-white/10 text-zinc-300"}`}>{label}</NavLink>
           ))}
         </nav>
-        <main className="p-5 md:p-10">
+        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 md:hidden">
+          <p className="truncate text-xs text-zinc-500">{me.email} · {me.role}</p>
+          <button data-testid="admin-logout-mobile" onClick={() => { localStorage.removeItem("at"); window.location.href = base; }} className="press inline-flex h-9 items-center gap-2 rounded-md border border-white/10 px-3 text-xs text-zinc-300"><SignOut size={14} /> Выйти</button>
+        </div>
+        <main className="p-4 sm:p-6 md:p-10">
           <Routes>
             <Route index element={<Dashboard />} />
             <Route path="users" element={<Users me={me} />} />
@@ -98,20 +102,20 @@ function Login({ onDone }: { onDone: (m: any) => void }) {
         <p className="font-display text-6xl font-black leading-none tracking-tighter">Easy<br /><span className="text-[#00FF66]">Crypto</span><br />control</p>
         <p className="mt-6 max-w-sm text-zinc-500">Вход по паролю и одноразовому коду на почту. Все действия записываются в журнал.</p>
       </div>
-      <div className="flex items-center px-6 sm:px-14">
+      <div className="flex items-center px-6 py-16 sm:px-14">
         {!cid ? (
           <form onSubmit={step1} className="w-full max-w-sm space-y-4" data-testid="admin-login-form">
             <h1 className="font-display text-2xl font-bold">Вход в админку</h1>
-            <input data-testid="admin-login-email" className={`${inp} w-full py-3`} placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <input data-testid="admin-login-password" type="password" className={`${inp} w-full py-3`} placeholder="Пароль" value={password} onChange={(e) => setPassword(e.target.value)} />
-            <button data-testid="admin-login-submit" disabled={busy} className="press w-full rounded-md bg-[#00FF66] py-3 font-display text-sm font-semibold text-black disabled:opacity-50">Продолжить</button>
+            <input data-testid="admin-login-email" className={`${inp} h-12 w-full`} placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input data-testid="admin-login-password" type="password" className={`${inp} h-12 w-full`} placeholder="Пароль" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <button data-testid="admin-login-submit" disabled={busy} className="press h-12 w-full rounded-md bg-[#00FF66] font-display text-sm font-semibold text-black disabled:opacity-50">Продолжить</button>
           </form>
         ) : (
           <form onSubmit={step2} className="w-full max-w-sm space-y-4" data-testid="admin-otp-form">
             <h1 className="font-display text-2xl font-bold">Код из письма</h1>
             <p className="text-sm text-zinc-500">Отправили 6 цифр на {email}. Код действует 10 минут.</p>
-            <input data-testid="admin-otp-input" inputMode="numeric" maxLength={6} className={`${inp} w-full py-3 text-center font-mono-num text-2xl tracking-[0.5em]`} value={code} onChange={(e) => setCode(e.target.value)} />
-            <button data-testid="admin-otp-submit" disabled={busy || code.length !== 6} className="press w-full rounded-md bg-[#00FF66] py-3 font-display text-sm font-semibold text-black disabled:opacity-50">Войти</button>
+            <input data-testid="admin-otp-input" inputMode="numeric" maxLength={6} className={`${inp} h-14 w-full text-center font-mono-num text-2xl tracking-[0.5em]`} value={code} onChange={(e) => setCode(e.target.value)} />
+            <button data-testid="admin-otp-submit" disabled={busy || code.length !== 6} className="press h-12 w-full rounded-md bg-[#00FF66] font-display text-sm font-semibold text-black disabled:opacity-50">Войти</button>
           </form>
         )}
       </div>
