@@ -6,7 +6,7 @@ import { H, Btn, useLoad, inp } from "../kit";
 
 const FIELDS: [string, string][] = [["withdraw_fee", "Мин. комиссия вывода"], ["deposit_fee", "Комиссия пополнения"], ["withdraw_min", "Мин. вывод"], ["per_op_limit", "Лимит за операцию"],
   ["daily_limit", "Лимит в сутки"], ["auto_approve_limit", "Автоодобрение до"], ["sweep_threshold", "Порог свипа"], ["hot_alert", "Алерт горячего ниже"]];
-const FEATURES: [string, string][] = [["transfers", "Внутренние переводы"], ["checks", "Чеки"], ["invoices", "Счета"], ["merchant", "Платёжный шлюз"], ["referral", "Рефералка"]];
+const FEATURES: [string, string][] = [["transfers", "Внутренние переводы"], ["checks", "Чеки"], ["invoices", "Счета"], ["merchant", "Платёжный шлюз"], ["referral", "Рефералка"], ["swap", "Обмен"]];
 
 export default function Settings() {
   const { data } = useLoad<any>("/settings");
@@ -71,7 +71,8 @@ export default function Settings() {
             [["check_claims_per_minute"], "Попыток активации чека в минуту"], [["gas", "ton_jetton_sweep"], "Газ на свип jetton, TON"], [["gas", "tron_trx_topup"], "TRX на энергию для свипа"],
             [["fees", "gas_margin_pct"], "Запас к цене газа, %"], [["fees", "profit_usdt"], "Наценка на вывод USDT, $"],
             [["fees", "ton_jetton_gas"], "Газ вывода USDT TON, TON"], [["fees", "tron_energy_existing"], "Энергия TRC20 (адрес с USDT)"],
-            [["fees", "tron_energy_new"], "Энергия TRC20 (новый адрес)"], [["fees", "hot_trx_alert"], "Алерт: TRX на газ ниже"]].map(([p, l]: any) => (
+            [["fees", "tron_energy_new"], "Энергия TRC20 (новый адрес)"], [["fees", "hot_trx_alert"], "Алерт: TRX на газ ниже"],
+            [["swap", "fee_pct"], "Обмен: спред, %"], [["swap", "min_usd"], "Обмен: минимум, $"], [["swap", "max_usd"], "Обмен: максимум, $"]].map(([p, l]: any) => (
             <label key={p.join(".")} className="flex items-center justify-between gap-3">{l}
               <input data-testid={`settings-${p.join("-")}`} className={`${inp} w-28`} value={p.reduce((o: any, k: string) => o[k], s)} onChange={(e) => upd(p, e.target.value)} />
             </label>

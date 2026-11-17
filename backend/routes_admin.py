@@ -109,6 +109,57 @@ async def stats(a=Depends(perm("view")), days: int = 14):
             "reconcile_at": rec["at"].isoformat() if rec.get("at") else None}
 
 
+@router.get("/finance")
+async def finance(a=Depends(perm("view")), days: int = 30):
+    return await finance_report(days)
+
+
+async def finance_report(days: int = 30) -> dict:
+    import fees
+    from decimal import Decimal
+    s = await get_settings()
+    r = await fees.rates() or {"TON": Decimal(0), "TRX": Decimal(0)}
+    price = lambda x: Decimal(1) if x.startswith("USDT") else r["TON"]  # noqa: E731
+    since = now() - timedelta(days=days)
+    rows: dict = {}
+
+    def row(day):
+        return rows.setdefault(day, {"day": day, "income": {x: 0 for x in ASSETS}, "income_usd": Decimal(0),
+                                     "cost_usd": Decimal(0), "withdrawals": 0, "sweeps": 0})
+    async for x in db.journal.aggregate([
+        {"$match": {"created_at": {"$gte": since}}}, {"$unwind": "$entries"}, {"$match": {"entries.account": "sys:fees"}},
+        {"$group": {"_id": {"d": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}}, "a": "$entries.asset"},
+                    "s": {"$sum": "$entries.amount"}}}]):
+        rr, asset = row(x["_id"]["d"]), x["_id"]["a"]
+        rr["income"][asset] += int(x["s"])
+        rr["income_usd"] += Decimal(int(x["s"])) / Decimal(10 ** ASSETS[asset]["decimals"]) * price(asset)
+    unit = {x: await fees.op_cost_usd(x, "withdraw", s) for x in ASSETS}
+    sweep_unit = {x: await fees.op_cost_usd(x, "sweep", s) for x in ASSETS}
+    async for x in db.withdrawals.aggregate([
+        {"$match": {"status": "completed", "completed_at": {"$gte": since}}},
+        {"$group": {"_id": {"d": {"$dateToString": {"format": "%Y-%m-%d", "date": "$completed_at"}}, "a": "$asset"}, "n": {"$sum": 1}}}]):
+        rr = row(x["_id"]["d"])
+        rr["withdrawals"] += x["n"]
+        rr["cost_usd"] += unit[x["_id"]["a"]] * x["n"]
+    async for x in db.sweeps.aggregate([
+        {"$match": {"status": "done", "kind": "sweep", "created_at": {"$gte": since}}},
+        {"$group": {"_id": {"d": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}}, "a": "$asset"}, "n": {"$sum": 1}}}]):
+        rr = row(x["_id"]["d"])
+        rr["sweeps"] += x["n"]
+        rr["cost_usd"] += sweep_unit.get(x["_id"]["a"], Decimal(0)) * x["n"]
+    out = []
+    for d in sorted(rows, reverse=True):
+        v = rows[d]
+        out.append({**v, "income": {k: fmt(k, n) for k, n in v["income"].items()}, "income_usd": f"{v['income_usd']:.2f}",
+                    "cost_usd": f"{v['cost_usd']:.2f}", "profit_usd": f"{v['income_usd'] - v['cost_usd']:.2f}"})
+    tot_in = sum((rows[d]["income_usd"] for d in rows), Decimal(0))
+    tot_cost = sum((rows[d]["cost_usd"] for d in rows), Decimal(0))
+    return {"days": days, "rows": out, "total": {"income_usd": f"{tot_in:.2f}", "cost_usd": f"{tot_cost:.2f}",
+                                                 "profit_usd": f"{tot_in - tot_cost:.2f}"},
+            "prices": {"TON": str(r["TON"]), "TRX": str(r["TRX"])},
+            "unit_cost_usd": {k: f"{v:.2f}" for k, v in unit.items()}}
+
+
 @router.get("/ledger/reconcile")
 async def do_reconcile(a=Depends(perm("view"))):
     r = await reconcile()

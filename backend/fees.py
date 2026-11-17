@@ -78,3 +78,17 @@ async def withdraw_fee(asset: str, address: str | None, s: dict) -> int:
 def deposit_fee(asset: str, amount: int, s: dict) -> int:
     """Flat deposit fee (covers the sweep), never more than 10% of the deposit."""
     return min(_u(asset, s["assets"][asset].get("deposit_fee", "0")), amount // 10)
+
+
+async def op_cost_usd(asset: str, op: str, s: dict) -> Decimal:
+    """Estimated network cost of one completed withdrawal or sweep, at current prices."""
+    r = await rates()
+    if not r:
+        return Decimal(0)
+    if asset == "TON":
+        return Decimal("0.006") * r["TON"]
+    if asset == "USDT_TON":
+        gas = s["fees"]["ton_jetton_gas"] if op == "withdraw" else s["gas"]["ton_jetton_sweep"]
+        return Decimal(str(gas)) * r["TON"]
+    trx = Decimal(int(s["fees"]["tron_energy_existing"]) * await energy_fee_sun()) / Decimal(10 ** 6) + Decimal("0.35")
+    return (trx + (Decimal("0.3") if op == "sweep" else 0)) * r["TRX"]

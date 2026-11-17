@@ -165,6 +165,9 @@ async def stats(msg: Message, state: FSMContext):
     turnover = "\n".join(f"  {ASSETS[k]['title']}: {v}" for k, v in s["turnover"].items())
     fees = "\n".join(f"  {ASSETS[k]['title']}: {v}" for k, v in s["fees"].items())
     alerts = "\n".join(f"• {x}" for x in s["hot_alerts"]) or "нет"
+    fin = (await ra.finance_report(30))["total"]
+    alerts += (f"\n\nФинансы за 30 дней:\n  Доход с комиссий: ${fin['income_usd']}\n  Расход на сеть (оценка): ${fin['cost_usd']}\n"
+               f"  Прибыль: ${fin['profit_usd']}")
     await msg.answer(f"Статистика\n\nПользователей: {s['users']}\nАктивны сегодня: {s['dau_today']}\n"
                      f"Выводы ждут одобрения: {s['pending_withdrawals']}\nВыводы в обработке: {s['processing_withdrawals']}\n"
                      f"Статус неизвестен: {s['unknown_withdrawals']}\nМерчанты на одобрении: {s['pending_merchants']}\n"

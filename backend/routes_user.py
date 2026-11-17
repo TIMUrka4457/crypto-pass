@@ -51,7 +51,7 @@ async def me(u=Depends(current_user)):
 KIND_TEXT = {"deposit": "Пополнение", "withdraw_hold": "Вывод (блокировка)", "withdraw_refund": "Возврат вывода",
              "withdraw": "Вывод", "transfer": "Перевод", "check_create": "Создание чека", "check_claim": "Чек",
              "check_refund": "Возврат чека", "invoice_payment": "Счёт", "adjust": "Корректировка",
-             "deposit_aml_release": "Пополнение (после проверки)"}
+             "deposit_aml_release": "Пополнение (после проверки)", "swap": "Обмен", "inline_check": "Чек в чате"}
 
 
 def history_rows(docs, accounts):
@@ -133,6 +133,26 @@ async def do_transfer(body: TransferIn, u=Depends(current_user)):
     not_frozen(u)
     to = await find_user_by_username(body.to_username)
     return await transfer(u, to, body.asset, body.amount, body.idempotency_key, body.comment)
+
+
+class SwapIn(BaseModel):
+    from_asset: str
+    to_asset: str
+    amount: str
+    min_receive: Optional[str] = None
+    idempotency_key: str = Field(min_length=8, max_length=64)
+
+
+@router.get("/swap/quote")
+async def swap_quote(from_asset: str, to_asset: str, amount: str, u=Depends(current_user)):
+    import swap
+    return (await swap.quote(from_asset, to_asset, amount))["out"]
+
+
+@router.post("/swap")
+async def do_swap(body: SwapIn, u=Depends(current_user)):
+    import swap
+    return await swap.execute(u, body.from_asset, body.to_asset, body.amount, body.idempotency_key, body.min_receive)
 
 
 # ---------------- checks ----------------

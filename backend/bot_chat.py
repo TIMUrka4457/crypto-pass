@@ -1,5 +1,6 @@
 """Full wallet inside the Telegram chat: one inline 'wallet card' message, navigation by buttons (xRocket-style)."""
 import io
+import re
 import uuid
 
 import qrcode
@@ -7,7 +8,8 @@ from aiogram import F, Router
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import (BufferedInputFile, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup,
+from aiogram.types import (BufferedInputFile, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, InlineQuery,
+                           InlineQueryResultArticle, InlineQueryResultsButton, InputTextMessageContent,
                            KeyboardButton, Message, ReplyKeyboardMarkup, WebAppInfo)
 from fastapi import HTTPException
 
@@ -15,7 +17,7 @@ import bot
 import fees
 from auth import upsert_tg_user, not_frozen
 from checks import create_check, claim_check, public_check, close_check
-from core import db, ASSETS, NETWORKS, fmt, to_units, get_settings, require_feature
+from core import db, ASSETS, NETWORKS, fmt, to_units, get_settings, require_feature, new_id, now
 from ledger import user_balances, acct
 from services import (transfer, create_withdrawal, deposit_address, find_user_by_username,
                       create_invoice, pay_invoice, public_invoice, cancel_invoice)
@@ -24,7 +26,12 @@ router = Router()
 H = "HTML"
 B_WALLET = "Кошелёк"
 MENU = ReplyKeyboardMarkup(resize_keyboard=True, is_persistent=True, keyboard=[[KeyboardButton(text=B_WALLET)]])
-FLOW_TITLE = {"tr": "перевода", "wd": "вывода", "ck": "чека", "iv": "счёта"}
+FLOW_TITLE = {"tr": "перевода", "wd": "вывода", "ck": "чека", "iv": "счёта", "sw": "обмена (отдаёте)"}
+
+
+class Sw(StatesGroup):
+    amount = State()
+    confirm = State()
 
 
 class Tr(StatesGroup):
@@ -90,9 +97,10 @@ async def card(u: dict) -> tuple[str, InlineKeyboardMarkup]:
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Пополнить", callback_data="m:dep"), InlineKeyboardButton(text="Вывести", callback_data="m:wd")],
         [InlineKeyboardButton(text="Перевести", callback_data="m:tr"), InlineKeyboardButton(text="Получить", callback_data="m:recv")],
-        [InlineKeyboardButton(text="Чеки", callback_data="m:ck"), InlineKeyboardButton(text="Счета", callback_data="m:iv")],
-        [InlineKeyboardButton(text="История", callback_data="m:hist"), InlineKeyboardButton(text="Рефералы", callback_data="m:ref")],
-        [InlineKeyboardButton(text="Комиссии", callback_data="m:fees"), InlineKeyboardButton(text="Обновить", callback_data="home")],
+        [InlineKeyboardButton(text="Обмен", callback_data="m:sw"), InlineKeyboardButton(text="Чеки", callback_data="m:ck")],
+        [InlineKeyboardButton(text="Счета", callback_data="m:iv"), InlineKeyboardButton(text="История", callback_data="m:hist")],
+        [InlineKeyboardButton(text="Рефералы", callback_data="m:ref"), InlineKeyboardButton(text="Комиссии", callback_data="m:fees")],
+        [InlineKeyboardButton(text="Обновить", callback_data="home")],
         [app_btn("Открыть приложение")]])
     return head + "\n".join(lines) + warn, markup
 
@@ -106,7 +114,8 @@ WELCOME = ("<b>Добро пожаловать в EasyCrypto!</b>\n\n"
            "Криптокошелёк прямо в Telegram — без регистрации, телефона и почты.\n\n"
            "• Храните <b>TON</b>, <b>USDT (TON)</b> и <b>USDT (TRC20)</b>\n"
            "• Переводите друзьям по @username — <b>бесплатно и мгновенно</b>\n"
-           "• Отправляйте крипту ссылкой-чеком\n"
+           "• Меняйте TON ↔ USDT по рыночному курсу\n"
+           "• Отправляйте крипту ссылкой-чеком — или прямо в любом чате: напишите <code>@{bot} 5 usdt</code>\n"
            "• Выставляйте счета и принимайте оплату\n"
            "• Получайте {ref}% от комиссий приглашённых друзей\n\n"
            "Всё работает прямо здесь, в чате, кнопками. Кнопка «Кошелёк» внизу всегда вернёт к балансу.")
@@ -122,7 +131,7 @@ async def start(msg: Message, command: CommandObject, state: FSMContext):
     if arg.startswith("i_"):
         return await show_invoice(msg, arg[2:])
     s = await get_settings()
-    await msg.answer(WELCOME.format(ref=s["referral_pct"]), reply_markup=MENU, parse_mode=H)
+    await msg.answer(WELCOME.format(ref=s["referral_pct"], bot=await bot.username()), reply_markup=MENU, parse_mode=H)
     await send_card(msg, u)
 
 
@@ -198,7 +207,8 @@ async def fees_screen(cb: CallbackQuery):
     trc_old = fmt("USDT_TRC20", await fees.withdraw_fee("USDT_TRC20", None, s2))
     dep = "\n".join(f"  {t(a)}: {c['deposit_fee']} (не больше 10% суммы)" for a, c in s["assets"].items() if float(c["deposit_fee"]) > 0)
     await show(cb, "<b>Комиссии</b>\n\n"
-                   "Переводы по @username, чеки, счета: <b>0</b>\n\n"
+                   "Переводы по @username, чеки, счета: <b>0</b>\n"
+                   f"Обмен TON ↔ USDT: {s['swap']['fee_pct']}% от суммы\n\n"
                    f"Вывод:\n  TON: {s['assets']['TON']['withdraw_fee']} TON\n  USDT (TON): {usdt_ton} USDT\n"
                    f"  USDT (TRC20): {trc_old} USDT, на новый адрес {trc_new} USDT\n\n"
                    f"Пополнение:\n  TON и USDT (TON): 0\n{dep}\n\n"
@@ -246,7 +256,7 @@ async def deposit_net(cb: CallbackQuery):
 
 
 # ---------------- choose asset (shared) ----------------
-@router.callback_query(F.data.in_({"m:tr", "m:wd"}))
+@router.callback_query(F.data.in_({"m:tr", "m:wd", "m:sw"}))
 async def flow_menu(cb: CallbackQuery, state: FSMContext):
     await begin(cb, state, cb.data[2:])
 
@@ -254,7 +264,7 @@ async def flow_menu(cb: CallbackQuery, state: FSMContext):
 async def begin(cb: CallbackQuery, state: FSMContext, flow: str):
     await state.clear()
     await cb.answer()
-    feature = {"tr": "transfers", "ck": "checks", "iv": "invoices"}.get(flow)
+    feature = {"tr": "transfers", "ck": "checks", "iv": "invoices", "sw": "swap"}.get(flow)
     try:
         if feature:
             await require_feature(feature)
@@ -287,6 +297,133 @@ async def asset_chosen(cb: CallbackQuery, state: FSMContext):
     elif flow == "iv":
         await state.set_state(Iv.amount)
         await show(cb, f"Счёт в {t(asset)}.\nВведите сумму к оплате:", CANCEL_KB)
+    elif flow == "sw":
+        await show(cb, f"Отдаёте {t(asset)}. Что получить?",
+                   kb([(t(a), f"sw2:{a}") for a in ASSETS if a != asset], [("Отмена", "x")]))
+
+
+# ---------------- swap ----------------
+@router.callback_query(F.data.startswith("sw2:"))
+async def sw_to(cb: CallbackQuery, state: FSMContext):
+    await cb.answer()
+    d = await state.get_data()
+    to = cb.data[4:]
+    if to not in ASSETS or not d.get("asset") or to == d["asset"]:
+        return await done(cb, "Начните заново.")
+    await state.update_data(to=to)
+    await state.set_state(Sw.amount)
+    bal = (await user_balances((await me(cb))["_id"]))[d["asset"]]["available"]
+    await show(cb, f"Обмен {t(d['asset'])} → {t(to)}.\nСколько {t(d['asset'])} отдать? (доступно {fmt(d['asset'], bal)})", CANCEL_KB)
+
+
+@router.message(Sw.amount)
+async def sw_amount(msg: Message, state: FSMContext):
+    import swap
+    d = await state.get_data()
+    v = await read_amount(msg, d["asset"])
+    if not v:
+        return
+    try:
+        q = (await swap.quote(d["asset"], d["to"], v))["out"]
+    except HTTPException as e:
+        return await msg.answer(f"{e.detail}. Введите другую сумму:", reply_markup=CANCEL_KB)
+    await state.update_data(amount=v, min_receive=q["receive"])
+    await state.set_state(Sw.confirm)
+    await msg.answer(f"Отдаёте: <b>{q['amount']} {t(d['asset'])}</b>\nПолучите: <b>{q['receive']} {t(d['to'])}</b>\n"
+                     f"Курс: 1 {t(d['asset'])} = {q['rate']} {t(d['to'])}\nКомиссия обмена: {q['fee']} ({q['fee_pct']}%)",
+                     reply_markup=CONFIRM_KB, parse_mode=H)
+
+
+@router.callback_query(Sw.confirm, F.data == "ok")
+async def sw_ok(cb: CallbackQuery, state: FSMContext):
+    import swap
+    d = await state.get_data()
+    await state.clear()
+    await cb.answer()
+    try:
+        r = await swap.execute(await me(cb), d["asset"], d["to"], d["amount"], d["idem"], d["min_receive"])
+    except HTTPException as e:
+        return await done(cb, f"Не получилось: {e.detail}")
+    await done(cb, f"Обмен выполнен: получено <b>{r.get('receive', '')} {t(d['to'])}</b>.")
+
+
+# ---------------- inline checks: "@bot 5 usdt" in any chat ----------------
+INLINE_ALIASES = {"ton": ["TON"], "usdt": ["USDT_TON", "USDT_TRC20"], "trc20": ["USDT_TRC20"], "trc": ["USDT_TRC20"],
+                  "tron": ["USDT_TRC20"], "usdtton": ["USDT_TON"]}
+
+
+@router.inline_query()
+async def inline(q: InlineQuery):
+    u = await upsert_tg_user(q.from_user.model_dump())
+    m = re.match(r"^\s*(\d+(?:[.,]\d+)?)\s*([a-zA-Z0-9]*)", q.query or "")
+    hint = InlineQueryResultsButton(text="Как отправить чек: «5 usdt» или «1 ton»", start_parameter="inline")
+    if not m or u.get("frozen") or not (await get_settings())["features"]["checks"]:
+        return await q.answer([], cache_time=0, is_personal=True, button=hint)
+    value = m.group(1).replace(",", ".")
+    assets = INLINE_ALIASES.get(m.group(2).lower(), list(ASSETS)) if m.group(2) else list(ASSETS)
+    bals = await user_balances(u["_id"])
+    results = []
+    for a in assets:
+        try:
+            units = to_units(a, value)
+        except HTTPException:
+            continue
+        if bals[a]["available"] < units:
+            continue
+        nonce = new_id("ic_")
+        await db.inline_checks.insert_one({"_id": nonce, "creator": u["_id"], "asset": a, "amount": units,
+                                           "status": "pending", "created_at": now()})
+        name = f"@{u['username']}" if u.get("username") else u.get("first_name", "")
+        results.append(InlineQueryResultArticle(
+            id=nonce, title=f"Отправить чек {fmt(a, units)} {t(a)}",
+            description=f"Баланс: {fmt(a, bals[a]['available'])} {t(a)}. Спишется, когда чек заберут.",
+            input_message_content=InputTextMessageContent(
+                message_text=f"<b>Чек на {fmt(a, units)} {t(a)}</b> от {name}\nНажмите кнопку, чтобы забрать.", parse_mode=H),
+            reply_markup=kb([("Забрать чек", f"ic:{nonce}")])))
+    if not results:
+        hint = InlineQueryResultsButton(text="Недостаточно средств — пополнить", start_parameter="deposit")
+    await q.answer(results, cache_time=0, is_personal=True, button=hint)
+
+
+@router.callback_query(F.data.startswith("ic:"))
+async def inline_claim(cb: CallbackQuery):
+    from ledger import post, txn, Insufficient
+    from core import bad
+    nonce = cb.data[3:]
+    doc = await db.inline_checks.find_one({"_id": nonce})
+    if not doc or doc["status"] != "pending":
+        return await cb.answer("Чек уже забрали", show_alert=True)
+    u = await me(cb)
+    if doc["creator"] == u["_id"]:
+        return await cb.answer("Это ваш чек — его заберёт получатель", show_alert=True)
+    creator = await db.users.find_one({"_id": doc["creator"]})
+    if u.get("frozen") or not creator or creator.get("frozen"):
+        return await cb.answer("Чек недоступен", show_alert=True)
+
+    async def fn(s):
+        r = await db.inline_checks.update_one({"_id": nonce, "status": "pending"},
+                                              {"$set": {"status": "claimed", "claimer": u["_id"], "claimed_at": now()}}, session=s)
+        if not r.modified_count:
+            bad("Чек уже забрали", 409)
+        await post(s, "inline_check", [(acct(doc["creator"]), doc["asset"], -doc["amount"]), (acct(u["_id"]), doc["asset"], doc["amount"])],
+                   idem=f"ic:{nonce}", ref=nonce, meta={"from": doc["creator"], "to": u["_id"]})
+    try:
+        await txn(fn)
+    except Insufficient:
+        return await cb.answer("У отправителя недостаточно средств", show_alert=True)
+    except HTTPException as e:
+        return await cb.answer(e.detail, show_alert=True)
+    amount = f"{fmt(doc['asset'], doc['amount'])} {t(doc['asset'])}"
+    who = f"@{u['username']}" if u.get("username") else u.get("first_name", "")
+    await cb.answer(f"Зачислено {amount}. Откройте бота, чтобы увидеть баланс", show_alert=True)
+    if cb.inline_message_id:
+        try:
+            await cb.bot.edit_message_text(inline_message_id=cb.inline_message_id, parse_mode=H,
+                                           text=f"<b>Чек на {amount}</b> забрал {who}.")
+        except Exception:
+            pass
+    from services import notify
+    notify(doc["creator"], f"Ваш чек на {amount} забрал {who}")
 
 
 async def read_amount(msg: Message, asset: str) -> str | None:

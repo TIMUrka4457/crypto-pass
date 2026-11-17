@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowDown, ArrowUp, PaperPlaneTilt, Ticket, Receipt, UsersThree, Storefront, Snowflake, ClockCounterClockwise } from "@phosphor-icons/react";
+import { ArrowDown, ArrowUp, PaperPlaneTilt, Ticket, Receipt, UsersThree, Storefront, Snowflake, ArrowsLeftRight } from "@phosphor-icons/react";
 import { userApi, ASSET_LIST, ASSET_TITLE } from "@/lib/api";
 import { useWallet } from "../MiniApp";
 
@@ -14,7 +14,7 @@ const MORE = [
   { to: "invoices", label: "Счета", icon: Receipt },
   { to: "referral", label: "Рефералы", icon: UsersThree },
   { to: "merchant", label: "Мерчант", icon: Storefront },
-  { to: "history", label: "История", icon: ClockCounterClockwise },
+  { to: "swap", label: "Обмен", icon: ArrowsLeftRight },
 ];
 
 export default function Home() {

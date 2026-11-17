@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
-import { ChartLineUp, Users as UsersIcon, ArrowDown, ArrowUp, Gear, Fire, Storefront, Ticket, Megaphone, ListChecks, SignOut } from "@phosphor-icons/react";
+import { ChartLineUp, Users as UsersIcon, ArrowDown, ArrowUp, Gear, Fire, Storefront, Ticket, Megaphone, ListChecks, SignOut, CurrencyDollar } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { adminApi, errMsg } from "@/lib/api";
 import { inp } from "./kit";
@@ -14,9 +14,10 @@ import Merchants from "./pages/Merchants";
 import Monitoring from "./pages/Monitoring";
 import Broadcasts from "./pages/Broadcasts";
 import Audit from "./pages/Audit";
+import Finance from "./pages/Finance";
 
 const NAV = [
-  ["", "Обзор", ChartLineUp], ["users", "Пользователи", UsersIcon], ["deposits", "Депозиты", ArrowDown],
+  ["", "Обзор", ChartLineUp], ["finance", "Финансы", CurrencyDollar], ["users", "Пользователи", UsersIcon], ["deposits", "Депозиты", ArrowDown],
   ["withdrawals", "Выводы", ArrowUp], ["hot-wallet", "Горячий кошелёк", Fire], ["merchants", "Мерчанты", Storefront],
   ["monitoring", "Чеки и счета", Ticket], ["broadcasts", "Рассылки", Megaphone], ["settings", "Настройки", Gear],
   ["audit", "Журнал и админы", ListChecks],
@@ -61,6 +62,7 @@ export default function AdminApp({ base }: { base: string }) {
         <main className="p-4 sm:p-6 md:p-10">
           <Routes>
             <Route index element={<Dashboard />} />
+            <Route path="finance" element={<Finance />} />
             <Route path="users" element={<Users me={me} />} />
             <Route path="deposits" element={<Deposits />} />
             <Route path="withdrawals" element={<Withdrawals />} />

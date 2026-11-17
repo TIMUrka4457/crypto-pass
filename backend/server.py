@@ -51,6 +51,7 @@ INDEXES: dict[str, list[IndexModel]] = {
     "rate": [IndexModel([("at", ASCENDING)], name="ttl", expireAfterSeconds=180)],
     "otp": [IndexModel([("expires_at", ASCENDING)], name="ttl", expireAfterSeconds=0)],
     "aml_blocklist": [IndexModel([("address", ASCENDING)], name="address", unique=True)],
+    "inline_checks": [IndexModel([("created_at", ASCENDING)], name="ttl", expireAfterSeconds=60 * 86400)],
 }
 
 
