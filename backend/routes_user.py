@@ -169,6 +169,27 @@ async def do_swap(body: SwapIn, u=Depends(current_user)):
     return await swap.execute(u, body.from_asset, body.to_asset, body.amount, body.idempotency_key, body.min_receive)
 
 
+class DeleteIn(BaseModel):
+    confirm: str
+
+
+@router.post("/account/recreate-addresses")
+async def recreate(u=Depends(current_user)):
+    from services import recreate_addresses
+    not_frozen(u)
+    return {"retired": await recreate_addresses(u["_id"])}
+
+
+@router.post("/account/delete")
+async def delete_me(body: DeleteIn, u=Depends(current_user)):
+    from services import delete_account
+    if body.confirm.strip().upper() != "УДАЛИТЬ":
+        bad("Для подтверждения введите слово УДАЛИТЬ")
+    if u.get("deleted"):
+        bad("Аккаунт уже удалён")
+    return await delete_account(u)
+
+
 # ---------------- checks ----------------
 class CheckIn(BaseModel):
     asset: str

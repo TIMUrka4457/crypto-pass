@@ -152,6 +152,8 @@ async def login_step2(cid: str, code: str, ip: str) -> dict:
     await db.otp.delete_one({"_id": cid})
     a = await db.admins.find_one({"_id": c["admin_id"]})
     await audit(a, "login", a["email"], {}, "", ip)
+    import security
+    await security._alert(f"login:{cid}", f"вход в админку: {a['email']} ({ip or 'неизвестный IP'}). Если это не вы — смените пароль.")
     return {"token": make_token({"typ": "admin", "aid": a["_id"]}, 8), "role": a["role"], "email": a["email"]}
 
 

@@ -77,6 +77,12 @@ export default function Settings() {
               <input data-testid={`settings-${p.join("-")}`} className={`${inp} w-28`} value={p.reduce((o: any, k: string) => o[k], s)} onChange={(e) => upd(p, e.target.value)} />
             </label>
           ))}
+          <div className="flex items-center justify-between">Пауза всех выводов (включается сама при сбое сверки)
+            <Switch data-testid="settings-withdrawals-paused" checked={s.security.withdrawals_paused} onCheckedChange={(v) => upd(["security", "withdrawals_paused"], v)} />
+          </div>
+          <label className="flex items-center justify-between gap-3">Алерт: выводы за час больше, $
+            <input data-testid="settings-outflow-alert" className={`${inp} w-28`} value={s.security.outflow_alert_usd} onChange={(e) => upd(["security", "outflow_alert_usd"], e.target.value)} />
+          </label>
           <div className="flex items-center justify-between">Динамическая комиссия USDT (по цене газа)
             <Switch data-testid="settings-fees-dynamic" checked={s.fees.dynamic} onCheckedChange={(v) => upd(["fees", "dynamic"], v)} />
           </div>

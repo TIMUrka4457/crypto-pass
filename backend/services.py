@@ -50,10 +50,39 @@ async def deposit_address(owner_type: str, owner_id: str, network: str) -> dict:
 
 
 async def find_user_by_username(name: str) -> dict:
-    u = await db.users.find_one({"username": name.strip().lstrip("@").lower()})
+    u = await db.users.find_one({"username": name.strip().lstrip("@").lower(), "deleted": {"$ne": True}})
     if not u:
         bad("Пользователь не найден. Он должен хотя бы раз запустить бота")
     return u
+
+
+async def recreate_addresses(uid: str) -> int:
+    """Retire current deposit addresses (still watched and credited) so new ones are issued on next request."""
+    stamp = now().strftime("%Y%m%d%H%M%S")
+    r = await db.deposit_addresses.update_many({"owner_type": "user", "owner_id": uid}, {"$set": {"owner_type": f"user_old_{stamp}"}})
+    return r.modified_count
+
+
+async def delete_account(user: dict) -> dict:
+    """Irreversible: remaining balances are forfeited to sys:forfeit (recorded in the journal), profile anonymised."""
+    from ledger import user_balances
+    bals = await user_balances(user["_id"])
+    if any(v["hold"] for v in bals.values()):
+        bad("Есть выводы в обработке — дождитесь их завершения")
+    lines = []
+    for a, v in bals.items():
+        if v["available"]:
+            lines += [(acct(user["_id"]), a, -v["available"]), ("sys:forfeit", a, v["available"])]
+
+    async def fn(s):
+        if lines:
+            await post(s, "account_delete", lines, idem=f"del:{user['_id']}", ref=user["_id"])
+        await db.users.update_one({"_id": user["_id"]}, {"$set": {"deleted": True, "frozen": True, "username": None,
+                                                                   "first_name": "", "deleted_at": now()}}, session=s)
+        await db.checks.update_many({"creator_id": user["_id"], "status": "active"}, {"$set": {"status": "cancelled"}}, session=s)
+        await db.invoices.update_many({"creator_id": user["_id"], "status": "active"}, {"$set": {"status": "cancelled"}}, session=s)
+    await txn(fn)
+    return {"status": "deleted", "forfeited": {a: fmt(a, v["available"]) for a, v in bals.items() if v["available"]}}
 
 
 def fee_split(fee: int, referrer: str | None, pct: str) -> list:

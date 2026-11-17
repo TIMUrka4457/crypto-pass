@@ -129,6 +129,8 @@ async def _hold_deposit(d, result):
 
 # ---------------- withdrawals ----------------
 async def send_withdrawals():
+    if (await get_settings())["security"]["withdrawals_paused"]:
+        return
     for net in NETWORKS:
         if net == "ton" and await _ton_hot_busy():
             continue
@@ -386,6 +388,14 @@ JOBS = [("scan_deposits", scan_deposits, 30), ("process_deposits", process_depos
         ("send_withdrawals", send_withdrawals, 8), ("confirm_withdrawals", confirm_withdrawals, 15),
         ("sweeps", run_sweeps, 60), ("expire", expire_items, 30), ("webhooks", deliver_webhooks, 5),
         ("hot_wallet", hot_wallet_snapshot, 300), ("reconcile", reconcile_job, 600), ("cold_auto", cold_auto, 900)]
+
+
+async def _security_watch():
+    import security
+    await security.watch()
+
+
+JOBS.append(("security", _security_watch, 60))
 
 
 async def _loop(name, fn, every, stop: asyncio.Event):

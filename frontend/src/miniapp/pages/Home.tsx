@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowDown, ArrowUp, PaperPlaneTilt, Ticket, Receipt, UsersThree, Storefront, Snowflake, ArrowsLeftRight } from "@phosphor-icons/react";
+import { ArrowDown, ArrowUp, PaperPlaneTilt, Ticket, Receipt, UsersThree, Storefront, Snowflake, ArrowsLeftRight, Gear } from "@phosphor-icons/react";
 import { userApi, ASSET_LIST, ASSET_TITLE } from "@/lib/api";
 import { useWallet } from "../MiniApp";
 
@@ -31,7 +31,8 @@ export default function Home() {
         <p className="text-xs uppercase tracking-[0.25em] text-zinc-500" data-testid="home-username">
           {me?.user?.username ? `@${me.user.username}` : me?.user?.first_name}
         </p>
-        <span className="font-display text-xs text-[#00FF66]">EasyCrypto</span>
+        <span className="flex items-center gap-3"><span className="font-display text-xs text-[#00FF66]">EasyCrypto</span>
+          <Link to="/app/settings" data-testid="open-settings" className="press inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10"><Gear size={16} /></Link></span>
       </div>
       {me?.user?.frozen && (
         <div data-testid="frozen-banner" className="mt-4 flex items-center gap-2 rounded-xl border border-[#FF3366]/40 p-3 text-sm text-[#FF3366]">

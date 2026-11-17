@@ -52,6 +52,7 @@ INDEXES: dict[str, list[IndexModel]] = {
     "otp": [IndexModel([("expires_at", ASCENDING)], name="ttl", expireAfterSeconds=0)],
     "aml_blocklist": [IndexModel([("address", ASCENDING)], name="address", unique=True)],
     "inline_checks": [IndexModel([("created_at", ASCENDING)], name="ttl", expireAfterSeconds=60 * 86400)],
+    "security_events": [IndexModel([("at", ASCENDING)], name="ttl", expireAfterSeconds=30 * 86400)],
 }
 
 
@@ -79,6 +80,8 @@ async def health():
 
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
                    allow_methods=["*"], allow_headers=["*"])
+import security  # noqa: E402
+app.middleware("http")(security.guard_middleware)
 
 
 @app.on_event("startup")

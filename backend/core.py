@@ -89,6 +89,7 @@ DEFAULT_SETTINGS = {
     "features": {"transfers": True, "checks": True, "invoices": True, "merchant": True, "referral": True, "swap": True},
     "swap": {"fee_pct": "1.0", "min_usd": "1", "max_usd": "1000"},
     "cold": {"ton": "", "tron": "", "auto": False, "max_pct": "15", "target_pct": "8"},
+    "security": {"withdrawals_paused": False, "outflow_alert_usd": "2000"},
     "merchant_fee_pct": "1.0",
     "referral_pct": "20",
     "aml": {"enabled": True, "risk_threshold": "0.5"},

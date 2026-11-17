@@ -35,10 +35,10 @@ export default function Home() {
       <section className="mt-24 grid gap-10 border border-white/10 bg-[#0c0c0c] p-8 sm:p-12 lg:grid-cols-[1.2fr_1fr]">
         <div>
           <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Безопасность — по умолчанию</h2>
-          <p className="mt-4 text-zinc-400">Большая часть средств хранится в холодных кошельках. Каждая операция проходит через двойную бухгалтерию, крупные выводы проверяет человек, а все действия сотрудников записываются в журнал.</p>
+          <p className="mt-4 text-zinc-400">Большая часть средств хранится в холодных кошельках. Каждая операция проходит через двойную бухгалтерию с автоматической сверкой, крупные выводы проверяются вручную, а подозрительная активность сразу останавливается.</p>
         </div>
         <ul className="space-y-3 text-sm text-zinc-300">
-          {["Холодное хранение основной части средств", "Ручная проверка крупных выводов", "Лимиты на операции и в сутки", "Блок-лист подозрительных адресов", "Вход сотрудников по паролю и коду с почты"].map((x) => <li key={x} className="border-b border-white/5 pb-3">{x}</li>)}
+          {["Холодное хранение основной части средств", "Ручная проверка крупных выводов", "Лимиты на операции и в сутки", "Блок-лист подозрительных адресов", "Круглосуточный мониторинг аномалий"].map((x) => <li key={x} className="border-b border-white/5 pb-3">{x}</li>)}
         </ul>
       </section>
       <section className="mt-24 flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">

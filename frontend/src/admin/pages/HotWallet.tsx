@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Warning } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { QRCodeSVG } from "qrcode.react";
 import { Switch } from "@/components/ui/switch";
 import { adminApi, errMsg, ASSET_LIST, ASSET_TITLE } from "@/lib/api";
 import { Status } from "@/miniapp/ui";
@@ -59,6 +60,22 @@ export default function HotWallet({ me }: { me: any }) {
         <>
           <p className="mb-4 text-xs text-zinc-500">Снимок: {dt(s.at)} {s.trx_balance && `· TRX на газ: ${s.trx_balance}`}</p>
           {s.alerts?.map((a: string) => <div key={a} data-testid="hot-alert" className="mb-2 flex items-center gap-3 border border-amber-300/40 px-4 py-3 text-sm text-amber-200"><Warning size={18} />{a}</div>)}
+          <div className="mb-6 border border-[#00E5FF]/30 bg-[#00E5FF]/5 p-6" data-testid="hot-topup">
+            <p className="font-display text-lg">Куда пополнять горячие кошельки</p>
+            <p className="mt-1 text-xs text-zinc-400">TON-адрес принимает TON (газ для выводов и свипов) и USDT TON. TRON-адрес принимает TRX (энергия) и USDT TRC20. Держите TON ≥ 5 и TRX ≥ 100.</p>
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+              {[["TON · USDT TON", s.assets?.TON?.address], ["TRON · TRX · USDT TRC20", s.assets?.USDT_TRC20?.address]].map(([l, addr]) => (
+                <div key={l} className="flex items-center gap-4">
+                  {addr && <div className="shrink-0 rounded-lg bg-white p-2"><QRCodeSVG value={addr} size={96} /></div>}
+                  <div className="min-w-0">
+                    <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">{l}</p>
+                    <p className="mt-1 break-all font-mono-num text-xs" data-testid={`hot-topup-${l.split(" ")[0].toLowerCase()}`}>{addr}</p>
+                    <Btn testid={`hot-copy-${l.split(" ")[0].toLowerCase()}`} onClick={() => { navigator.clipboard?.writeText(addr); toast.success("Скопировано"); }}>Скопировать</Btn>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {ASSET_LIST.map((a) => {
               const e = s.assets?.[a] || {};

@@ -94,13 +94,15 @@ async def card(u: dict) -> tuple[str, InlineKeyboardMarkup]:
              for a, v in b.items()]
     head = f"<b>EasyCrypto · Кошелёк</b>\n{'@' + u['username'] if u.get('username') else u.get('first_name', '')}\n\n"
     warn = "\n\n<b>Аккаунт заморожен.</b> Обратитесь в поддержку." if u.get("frozen") else ""
+    if u.get("deleted"):
+        warn = "\n\n<b>Аккаунт удалён.</b>"
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Пополнить", callback_data="m:dep"), InlineKeyboardButton(text="Вывести", callback_data="m:wd")],
         [InlineKeyboardButton(text="Перевести", callback_data="m:tr"), InlineKeyboardButton(text="Получить", callback_data="m:recv")],
         [InlineKeyboardButton(text="Обмен", callback_data="m:sw"), InlineKeyboardButton(text="Чеки", callback_data="m:ck")],
         [InlineKeyboardButton(text="Счета", callback_data="m:iv"), InlineKeyboardButton(text="История", callback_data="m:hist")],
         [InlineKeyboardButton(text="Рефералы", callback_data="m:ref"), InlineKeyboardButton(text="Комиссии", callback_data="m:fees")],
-        [InlineKeyboardButton(text="Обновить", callback_data="home")],
+        [InlineKeyboardButton(text="Обновить", callback_data="home"), InlineKeyboardButton(text="Настройки", callback_data="m:set")],
         [app_btn("Открыть приложение")]])
     return head + "\n".join(lines) + warn, markup
 
@@ -701,6 +703,64 @@ async def pay(cb: CallbackQuery):
     except HTTPException as e:
         return await done(cb, f"Не получилось: {e.detail}")
     await done(cb, "Счёт оплачен.")
+
+
+# ---------------- account settings ----------------
+@router.callback_query(F.data == "m:set")
+async def settings_screen(cb: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await cb.answer()
+    await show(cb, "<b>Настройки</b>\n\nЯзык: русский (английский — скоро)",
+               kb([("Новые адреса пополнения", "set:addr")], [("Удалить аккаунт", "set:del")], BACK))
+
+
+@router.callback_query(F.data == "set:addr")
+async def set_addr(cb: CallbackQuery):
+    await cb.answer()
+    await show(cb, "Выдать новые адреса пополнения?\n\nСтарые адреса продолжат работать — переводы на них тоже зачислятся.",
+               kb([("Да, выдать новые", "set:addr_ok")], BACK))
+
+
+@router.callback_query(F.data == "set:addr_ok")
+async def set_addr_ok(cb: CallbackQuery):
+    from services import recreate_addresses
+    await cb.answer()
+    u = await me(cb)
+    if u.get("frozen"):
+        return await done(cb, "Аккаунт заморожен.")
+    await recreate_addresses(u["_id"])
+    await show(cb, "Готово. Новые адреса появятся в «Пополнить».", kb([("Пополнить", "m:dep")], BACK))
+
+
+@router.callback_query(F.data == "set:del")
+async def set_del(cb: CallbackQuery):
+    await cb.answer()
+    b = await user_balances((await me(cb))["_id"])
+    left = ", ".join(f"{fmt(a, v['available'])} {t(a)}" for a, v in b.items() if v["available"])
+    await show(cb, "<b>Внимание! Удаление нельзя отменить.</b>\n\n"
+                   + (f"На балансе осталось: <b>{left}</b>.\nЭти средства <b>пропадут</b>. Сначала выведите их.\n\n" if left else "")
+                   + "Активные чеки и счета будут отменены, аккаунт будет заблокирован.",
+               kb([("Я понимаю, удалить", "set:del2")], BACK))
+
+
+@router.callback_query(F.data == "set:del2")
+async def set_del2(cb: CallbackQuery):
+    await cb.answer()
+    await show(cb, "Последнее подтверждение. Удалить аккаунт навсегда?", kb([("Удалить навсегда", "set:del3")], [("Нет, оставить", "home")]))
+
+
+@router.callback_query(F.data == "set:del3")
+async def set_del3(cb: CallbackQuery):
+    from services import delete_account
+    await cb.answer()
+    u = await me(cb)
+    if u.get("deleted"):
+        return await cb.message.edit_text("Аккаунт уже удалён.")
+    try:
+        await delete_account(u)
+    except HTTPException as e:
+        return await done(cb, f"Не получилось: {e.detail}")
+    await cb.message.edit_text("Аккаунт удалён.")
 
 
 @router.callback_query(F.data.in_({"ok", "nocomment", "nodesc"}))

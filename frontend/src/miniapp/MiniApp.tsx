@@ -12,6 +12,7 @@ import PayInvoice from "./pages/PayInvoice";
 import Referral from "./pages/Referral";
 import Merchant from "./pages/Merchant";
 import Swap from "./pages/Swap";
+import AccountSettings from "./pages/AccountSettings";
 
 type Ctx = { me: any; config: any; refresh: () => Promise<void> };
 const WalletCtx = createContext<Ctx>({ me: null, config: null, refresh: async () => {} });
@@ -81,6 +82,7 @@ export default function MiniApp() {
           <Route path="referral" element={<Referral />} />
           <Route path="merchant" element={<Merchant />} />
           <Route path="swap" element={<Swap />} />
+          <Route path="settings" element={<AccountSettings />} />
         </Routes>
       </div>
     </WalletCtx.Provider>
