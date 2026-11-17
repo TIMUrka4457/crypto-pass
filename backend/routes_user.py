@@ -103,6 +103,16 @@ async def withdraw(body: WithdrawIn, u=Depends(current_user)):
     return await create_withdrawal(u, body.asset, body.address, body.amount, body.idempotency_key)
 
 
+@router.get("/withdrawals/quote")
+async def withdraw_quote(asset: str, address: str = "", u=Depends(current_user)):
+    import fees
+    if asset not in ASSETS:
+        bad("Неизвестный актив")
+    s = await get_settings()
+    return {"asset": asset, "fee": fmt(asset, await fees.withdraw_fee(asset, address.strip() or None, s)),
+            "dynamic": bool(s["fees"]["dynamic"]) and asset != "TON"}
+
+
 @router.get("/withdrawals")
 async def my_withdrawals(u=Depends(current_user)):
     docs = await db.withdrawals.find({"user_id": u["_id"]}).sort("created_at", -1).limit(30).to_list(30)

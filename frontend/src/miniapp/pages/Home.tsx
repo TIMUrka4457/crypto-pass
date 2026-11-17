@@ -56,7 +56,8 @@ export default function Home() {
       <div className="mt-10 grid grid-cols-4 gap-2 sm:gap-3">
         {[...ACTIONS, ...MORE].map(({ to, label, icon: Icon, accent }: any) => (
           <Link key={to} to={to === "history" ? "/app" : `/app/${to}`} data-testid={`action-${to}`}
-            onClick={to === "history" ? () => document.getElementById("history")?.scrollIntoView({ behavior: "smooth" }) : undefined} flex-col items-center justify-center gap-2 rounded-2xl border px-1 text-center text-[11px] leading-tight sm:text-xs ${accent ? "border-[#00FF66] bg-[#00FF66] text-black" : "border-white/10 bg-[#141414] text-zinc-200 hover:border-white/30"}`}>
+            onClick={to === "history" ? () => document.getElementById("history")?.scrollIntoView({ behavior: "smooth" }) : undefined}
+            className={`press flex h-20 flex-col items-center justify-center gap-2 rounded-2xl border px-1 text-center text-[11px] leading-tight sm:text-xs ${accent ? "border-[#00FF66] bg-[#00FF66] text-black" : "border-white/10 bg-[#141414] text-zinc-200 hover:border-white/30"}`}>
             <Icon size={22} weight="bold" />
             {label}
           </Link>

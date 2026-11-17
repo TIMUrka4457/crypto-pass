@@ -297,6 +297,8 @@ async def hot_wallet_snapshot() -> dict:
     try:
         tb = await chains.tron_balances(tron_hot)
         onchain["USDT_TRC20"], snap["trx_balance"] = tb["usdt"], fmt("TON", tb["trx"] * 1000)
+        if tb["trx"] < int(Decimal(str(s["fees"]["hot_trx_alert"])) * 10**6):
+            snap["alerts"].append(f"TRX на газ в горячем кошельке: {snap['trx_balance']} — пополните, иначе выводы и свипы USDT TRC20 встанут")
     except ProviderDown:
         pass
     for asset in ASSETS:

@@ -4,8 +4,10 @@ import { Copy } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { userApi, errMsg, ASSET_TITLE } from "@/lib/api";
 import { PageHeader, Panel, Segmented, Status } from "../ui";
+import { useWallet } from "../MiniApp";
 
 export default function Deposit() {
+  const { config } = useWallet();
   const [net, setNet] = useState("ton");
   const [data, setData] = useState<any>(null);
   const [err, setErr] = useState("");
@@ -38,6 +40,9 @@ export default function Deposit() {
             <li>Зачисление после {data.confirmations} подтверждений сети.</li>
             {net === "ton" && <li>Отправляйте только оригинальный USDT (Tether). Другие jetton'ы не зачисляются.</li>}
             {net === "tron" && <li>Только USDT TRC20. TRX и другие токены не зачисляются.</li>}
+            {data.assets.filter((a: string) => Number(config?.assets?.[a]?.deposit_fee || 0) > 0).map((a: string) => (
+              <li key={a} data-testid={`deposit-fee-${a}`}>Комиссия за пополнение {ASSET_TITLE[a]}: {config.assets[a].deposit_fee}, но не больше 10% суммы.</li>
+            ))}
           </ul>
           {data.recent.length > 0 && (
             <div className="space-y-2" data-testid="deposit-recent">

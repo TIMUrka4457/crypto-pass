@@ -312,7 +312,7 @@ async def settings_put(body: dict, a=Depends(perm("settings"))):
     old = await get_settings()
     new = _merge(DEFAULT_SETTINGS, {k: v for k, v in body.items() if k in DEFAULT_SETTINGS})
     for asset, cfg in new["assets"].items():
-        for f in ("withdraw_fee", "withdraw_min", "per_op_limit", "daily_limit", "auto_approve_limit", "sweep_threshold", "hot_alert"):
+        for f in ("withdraw_fee", "withdraw_min", "per_op_limit", "daily_limit", "auto_approve_limit", "sweep_threshold", "hot_alert", "deposit_fee"):
             units0(asset, cfg[f])
     await db.settings.update_one({"_id": "global"}, {"$set": new}, upsert=True)
     changed = {k: new[k] for k in new if new[k] != old.get(k)}

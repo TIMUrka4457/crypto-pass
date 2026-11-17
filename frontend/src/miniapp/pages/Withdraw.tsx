@@ -13,6 +13,15 @@ export default function Withdraw() {
   const [list, setList] = useState<any[]>([]);
   const key = useMemo(() => idem(), [asset, address, amount]); // eslint-disable-line react-hooks/exhaustive-deps
   const cfg = config?.assets?.[asset] || {};
+  const [fee, setFee] = useState<string | null>(null);
+  useEffect(() => {
+    setFee(null);
+    const t = setTimeout(() => {
+      userApi.get("/withdrawals/quote", { params: { asset, address } }).then((r) => setFee(r.data.fee)).catch(() => setFee(cfg.withdraw_fee));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [asset, address]); // eslint-disable-line react-hooks/exhaustive-deps
+  const feeNum = Number(fee ?? cfg.withdraw_fee ?? 0);
   const load = () => userApi.get("/withdrawals").then((r) => setList(r.data));
   useEffect(() => { load(); }, []);
 
@@ -29,7 +38,7 @@ export default function Withdraw() {
       setBusy(false);
     }
   };
-  const total = amount && !isNaN(Number(amount)) ? (Number(amount) + Number(cfg.withdraw_fee || 0)).toFixed(6).replace(/\.?0+$/, "") : "—";
+  const total = amount && !isNaN(Number(amount)) ? (Number(amount) + feeNum).toFixed(6).replace(/\.?0+$/, "") : "—";
   return (
     <div>
       <PageHeader title="Вывести" />
@@ -39,10 +48,14 @@ export default function Withdraw() {
         <Field label="Адрес получателя">
           <input data-testid="withdraw-address-input" className={inputCls} value={address} onChange={(e) => setAddress(e.target.value)} placeholder={asset === "USDT_TRC20" ? "T…" : "UQ… / EQ…"} />
         </Field>
-        <Field label="Сумма" hint={`Минимум ${cfg.withdraw_min} · комиссия сети ${cfg.withdraw_fee} · лимит ${cfg.per_op_limit} за раз, ${cfg.daily_limit} в сутки`}>
+        <Field label="Сумма" hint={`Минимум ${cfg.withdraw_min} · лимит ${cfg.per_op_limit} за раз, ${cfg.daily_limit} в сутки`}>
           <input data-testid="withdraw-amount-input" inputMode="decimal" className={inputCls} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
         </Field>
         <div className="flex justify-between border-t border-white/10 pt-4 text-sm">
+          <span className="text-zinc-400">Комиссия сети</span>
+          <span className="tabular" data-testid="withdraw-fee">{fee ?? "…"} {ASSET_TITLE[asset]}</span>
+        </div>
+        <div className="flex justify-between text-sm">
           <span className="text-zinc-400">Спишется с баланса</span>
           <span className="tabular" data-testid="withdraw-total">{total} {ASSET_TITLE[asset]}</span>
         </div>

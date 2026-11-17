@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { adminApi, errMsg, ASSET_LIST, ASSET_TITLE } from "@/lib/api";
 import { H, Btn, useLoad, inp } from "../kit";
 
-const FIELDS: [string, string][] = [["withdraw_fee", "Комиссия вывода"], ["withdraw_min", "Мин. вывод"], ["per_op_limit", "Лимит за операцию"],
+const FIELDS: [string, string][] = [["withdraw_fee", "Мин. комиссия вывода"], ["deposit_fee", "Комиссия пополнения"], ["withdraw_min", "Мин. вывод"], ["per_op_limit", "Лимит за операцию"],
   ["daily_limit", "Лимит в сутки"], ["auto_approve_limit", "Автоодобрение до"], ["sweep_threshold", "Порог свипа"], ["hot_alert", "Алерт горячего ниже"]];
 const FEATURES: [string, string][] = [["transfers", "Внутренние переводы"], ["checks", "Чеки"], ["invoices", "Счета"], ["merchant", "Платёжный шлюз"], ["referral", "Рефералка"]];
 
@@ -68,15 +68,21 @@ export default function Settings() {
         <div className="space-y-3 border border-white/10 p-6 text-sm text-zinc-400">
           <p className="font-display text-lg text-white">Комиссии, AML, антиабуз</p>
           {[[["merchant_fee_pct"], "Комиссия мерчанта, %"], [["referral_pct"], "Доля реферала от комиссий, %"], [["aml", "risk_threshold"], "AML: порог риска (0–1)"],
-            [["check_claims_per_minute"], "Попыток активации чека в минуту"], [["gas", "ton_jetton_sweep"], "Газ на свип jetton, TON"], [["gas", "tron_trx_topup"], "TRX на энергию для свипа"]].map(([p, l]: any) => (
+            [["check_claims_per_minute"], "Попыток активации чека в минуту"], [["gas", "ton_jetton_sweep"], "Газ на свип jetton, TON"], [["gas", "tron_trx_topup"], "TRX на энергию для свипа"],
+            [["fees", "gas_margin_pct"], "Запас к цене газа, %"], [["fees", "profit_usdt"], "Наценка на вывод USDT, $"],
+            [["fees", "ton_jetton_gas"], "Газ вывода USDT TON, TON"], [["fees", "tron_energy_existing"], "Энергия TRC20 (адрес с USDT)"],
+            [["fees", "tron_energy_new"], "Энергия TRC20 (новый адрес)"], [["fees", "hot_trx_alert"], "Алерт: TRX на газ ниже"]].map(([p, l]: any) => (
             <label key={p.join(".")} className="flex items-center justify-between gap-3">{l}
               <input data-testid={`settings-${p.join("-")}`} className={`${inp} w-28`} value={p.reduce((o: any, k: string) => o[k], s)} onChange={(e) => upd(p, e.target.value)} />
             </label>
           ))}
+          <div className="flex items-center justify-between">Динамическая комиссия USDT (по цене газа)
+            <Switch data-testid="settings-fees-dynamic" checked={s.fees.dynamic} onCheckedChange={(v) => upd(["fees", "dynamic"], v)} />
+          </div>
           <div className="flex items-center justify-between">AML-проверка входящих
             <Switch data-testid="settings-aml-enabled" checked={s.aml.enabled} onCheckedChange={(v) => upd(["aml", "enabled"], v)} />
           </div>
-          <p className="text-xs text-zinc-600">Если AML-провайдер не ответил, депозит уходит на ручную проверку. Комиссия вывода должна покрывать газ и энергию сети.</p>
+          <p className="text-xs text-zinc-600">Если AML-провайдер не ответил, депозит уходит на ручную проверку. Комиссия вывода USDT = реальная стоимость газа по рыночной цене + запас + наценка, но не ниже минимума. Комиссия пополнения — не больше 10% суммы.</p>
         </div>
       </div>
     </div>

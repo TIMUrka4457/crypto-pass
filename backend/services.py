@@ -111,7 +111,9 @@ async def create_withdrawal(user: dict, asset: str, address: str, amount_str, id
         bad("Некорректный адрес")
     if await db.deposit_addresses.find_one({"address": address}):
         bad("Это адрес нашего кошелька — используйте внутренний перевод")
-    amount, fee = to_units(asset, amount_str), units0(asset, cfg["withdraw_fee"])
+    amount = to_units(asset, amount_str)
+    import fees
+    fee = await fees.withdraw_fee(asset, address, s)
     if amount < units0(asset, cfg["withdraw_min"]):
         bad(f"Минимальная сумма вывода {cfg['withdraw_min']}")
     if amount > units0(asset, cfg["per_op_limit"]):
@@ -212,6 +214,9 @@ async def credit_deposit(dep: dict, from_status: str, manual_admin: dict = None,
         fee, referrer = 0, None
         if inv and inv.get("merchant_id"):
             fee = int(Decimal(amount) * Decimal(str(inv.get("fee_pct", "0"))) / 100)
+        elif addr["owner_type"] == "user":
+            import fees
+            fee = fees.deposit_fee(asset, amount, s)
         lines = [(src, asset, -amount), (acct(owner), asset, amount - fee)]
         if fee:
             ou = await db.users.find_one({"_id": owner}, session=sess)
@@ -228,8 +233,10 @@ async def credit_deposit(dep: dict, from_status: str, manual_admin: dict = None,
             await audit(manual_admin, "deposit_credit", dep["_id"], {"amount": fmt(asset, amount)}, comment, session=sess)
         if inv:
             await record_invoice_payment(sess, inv, None, amount, "external", dep["_id"])
-    await txn(fn)
-    notify(owner, f"Зачислено {fmt(asset, amount)} {ASSETS[asset]['title']}" + (f" по счёту #{inv['code']}" if inv else ""))
+        return amount - fee
+    credited = await txn(fn)
+    notify(owner, f"Зачислено {fmt(asset, credited)} {ASSETS[asset]['title']}" + (f" по счёту #{inv['code']}" if inv else "")
+           + (f" (комиссия {fmt(asset, amount - credited)})" if credited != amount and not inv else ""))
 
 
 # ---------------- invoices ----------------

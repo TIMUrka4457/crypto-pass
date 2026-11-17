@@ -76,14 +76,14 @@ DEFAULT_SETTINGS = {
         "tron": {"enabled": True, "confirmations": 20},
     },
     "assets": {
-        "TON": {"deposit_enabled": True, "withdraw_enabled": True, "withdraw_fee": "0.05", "withdraw_min": "0.5",
+        "TON": {"deposit_enabled": True, "withdraw_enabled": True, "withdraw_fee": "0.05", "withdraw_min": "0.5", "deposit_fee": "0",
                 "per_op_limit": "100", "daily_limit": "300", "auto_approve_limit": "20", "sweep_threshold": "2",
                 "hot_alert": "50"},
-        "USDT_TON": {"deposit_enabled": True, "withdraw_enabled": True, "withdraw_fee": "0.3", "withdraw_min": "2",
+        "USDT_TON": {"deposit_enabled": True, "withdraw_enabled": True, "withdraw_fee": "0.3", "withdraw_min": "2", "deposit_fee": "0",
                      "per_op_limit": "500", "daily_limit": "1000", "auto_approve_limit": "50", "sweep_threshold": "10",
                      "hot_alert": "200"},
-        "USDT_TRC20": {"deposit_enabled": True, "withdraw_enabled": True, "withdraw_fee": "2.5", "withdraw_min": "10",
-                       "per_op_limit": "500", "daily_limit": "1000", "auto_approve_limit": "50", "sweep_threshold": "20",
+        "USDT_TRC20": {"deposit_enabled": True, "withdraw_enabled": True, "withdraw_fee": "2.5", "withdraw_min": "10", "deposit_fee": "1",
+                       "per_op_limit": "500", "daily_limit": "1000", "auto_approve_limit": "50", "sweep_threshold": "50",
                        "hot_alert": "200"},
     },
     "features": {"transfers": True, "checks": True, "invoices": True, "merchant": True, "referral": True},
@@ -92,6 +92,8 @@ DEFAULT_SETTINGS = {
     "aml": {"enabled": True, "risk_threshold": "0.5"},
     "check_claims_per_minute": 5,
     "gas": {"ton_jetton_sweep": "0.1", "tron_trx_topup": "30"},
+    "fees": {"dynamic": True, "gas_margin_pct": "15", "profit_usdt": "0.3", "ton_jetton_gas": "0.05",
+             "tron_energy_existing": 65000, "tron_energy_new": 131000, "hot_trx_alert": "100"},
 }
 
 
